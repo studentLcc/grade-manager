@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, File, Path, Query, UploadFile
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_teacher
 from app.models import Teacher
+from app.modules.imports.schemas import ImportResult
+from app.modules.scores.import_service import import_scores
 from app.modules.scores.schemas import ScoreSaveRequest, ScoreSaveResult, ScoreSheetRead
 from app.modules.scores.service import get_score_sheet, save_scores
 from app.modules.scores.template_service import build_score_template
@@ -44,3 +46,14 @@ def score_template(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="exam-{exam_id}-score-template.xlsx"'},
     )
+
+
+@router.post("/{exam_id}/scores/import", response_model=ImportResult)
+def import_(
+    exam_id: int = Path(gt=0),
+    overwrite_existing: bool = False,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_teacher: Teacher = Depends(get_current_teacher),
+) -> dict[str, object]:
+    return import_scores(db, current_teacher, exam_id, file, overwrite_existing)

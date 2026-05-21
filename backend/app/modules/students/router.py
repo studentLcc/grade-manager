@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Depends, File, Path, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -6,6 +6,8 @@ from app.core.deps import get_current_teacher
 from app.core.pagination import Page, PageParams
 from app.core.status import ResourceStatus
 from app.models import Student, Teacher
+from app.modules.imports.schemas import ImportResult
+from app.modules.students.import_service import import_students
 from app.modules.students.schemas import StudentCreate, StudentRead, StudentUpdate
 from app.modules.students.service import (
     create_student,
@@ -37,6 +39,17 @@ def list_(
         class_id,
     )
     return {"items": items, "total": total, "page": params.page, "page_size": params.page_size}
+
+
+@router.post("/import", response_model=ImportResult)
+def import_(
+    target_class_id: int = Query(gt=0),
+    update_existing: bool = False,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_teacher: Teacher = Depends(get_current_teacher),
+) -> dict[str, object]:
+    return import_students(db, current_teacher, file, target_class_id, update_existing)
 
 
 @router.post("", response_model=StudentRead, status_code=201)
