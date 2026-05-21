@@ -1,0 +1,20 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: grade_manager
+      MYSQL_USER: grade_manager
+      MYSQL_PASSWORD: grade_manager
+      MYSQL_ROOT_PASSWORD: grade_manager_root
+    ports:
+      - "3306:3306"
+    volumes:
+      - grade_manager_mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  grade_manager_mysql:
