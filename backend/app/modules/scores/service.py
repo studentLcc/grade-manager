@@ -1,0 +1,181 @@
+from decimal import Decimal
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.models import Class, Course, ExamClass, ExamStudent, ExamSubject, Score, Student, Teacher
+from app.modules.exams.service import get_exam
+from app.modules.exams.roster_service import ensure_exam_roster
+from app.modules.scores.schemas import ScoreFailureItem, ScoreSaveItem, ScoreSaveRequest
+
+ABNORMAL_SCORE_STATUSES = {"absent", "deferred", "cheating", "exempt"}
+
+
+def get_score_sheet(db: Session, teacher: Teacher, exam_id: int) -> dict[str, object]:
+    exam = get_exam(db, teacher, exam_id)
+    ensure_exam_roster(db, exam)
+    db.commit()
+
+    classes = db.execute(
+        select(ExamClass, Class)
+        .join(Class, Class.id == ExamClass.class_id)
+        .where(ExamClass.exam_id == exam.id, ExamClass.status == "active")
+        .order_by(ExamClass.id)
+    ).all()
+    students = db.execute(
+        select(ExamStudent, Student)
+        .join(Student, Student.id == ExamStudent.student_id)
+        .where(ExamStudent.exam_id == exam.id, ExamStudent.status == "active")
+        .order_by(ExamStudent.id)
+    ).all()
+    subjects = db.execute(
+        select(ExamSubject, Course)
+        .join(Course, Course.id == ExamSubject.course_id)
+        .where(ExamSubject.exam_id == exam.id, ExamSubject.status == "active")
+        .order_by(ExamSubject.id)
+    ).all()
+    scores = db.scalars(
+        select(Score)
+        .join(ExamStudent, ExamStudent.id == Score.exam_student_id)
+        .join(ExamSubject, ExamSubject.id == Score.exam_subject_id)
+        .where(
+            ExamStudent.exam_id == exam.id,
+            ExamSubject.exam_id == exam.id,
+            ExamStudent.status == "active",
+            ExamSubject.status == "active",
+        )
+        .order_by(Score.exam_student_id, Score.exam_subject_id)
+    ).all()
+
+    return {
+        "exam": {
+            "id": exam.id,
+            "name": exam.name,
+            "exam_type": exam.exam_type,
+            "term": exam.term,
+        },
+        "classes": [{"id": class_.id, "name": class_.name} for _, class_ in classes],
+        "subjects": [
+            {
+                "exam_subject_id": subject.id,
+                "course_id": subject.course_id,
+                "course_name": course.course_name,
+                "full_score": subject.full_score,
+                "pass_score": subject.pass_score,
+                "excellent_score": subject.excellent_score,
+                "status": subject.status,
+            }
+            for subject, course in subjects
+        ],
+        "students": [
+            {
+                "exam_student_id": exam_student.id,
+                "student_id": student.id,
+                "class_id": exam_student.class_id,
+                "student_no": student.student_no,
+                "name": student.name,
+                "status": exam_student.status,
+            }
+            for exam_student, student in students
+        ],
+        "scores": [
+            {
+                "exam_student_id": score.exam_student_id,
+                "exam_subject_id": score.exam_subject_id,
+                "score": score.score,
+                "score_status": score.score_status,
+                "remark": score.remark or "",
+            }
+            for score in scores
+        ],
+    }
+
+
+def save_scores(db: Session, teacher: Teacher, exam_id: int, payload: ScoreSaveRequest) -> dict[str, object]:
+    exam = get_exam(db, teacher, exam_id)
+    students = {
+        row.id: row
+        for row in db.scalars(select(ExamStudent).where(ExamStudent.exam_id == exam.id)).all()
+    }
+    subjects = {
+        row.id: row
+        for row in db.scalars(select(ExamSubject).where(ExamSubject.exam_id == exam.id)).all()
+    }
+    existing_scores = {
+        (score.exam_student_id, score.exam_subject_id): score
+        for score in db.scalars(
+            select(Score)
+            .join(ExamStudent, ExamStudent.id == Score.exam_student_id)
+            .join(ExamSubject, ExamSubject.id == Score.exam_subject_id)
+            .where(ExamStudent.exam_id == exam.id, ExamSubject.exam_id == exam.id)
+        )
+    }
+
+    success_count = 0
+    failed_items: list[ScoreFailureItem] = []
+    pending_scores: dict[tuple[int, int], Score] = {}
+
+    for index, item in enumerate(payload.items):
+        reason = _validate_score_item(item, students, subjects)
+        if reason is not None:
+            failed_items.append(
+                ScoreFailureItem(
+                    index=index,
+                    exam_student_id=item.exam_student_id,
+                    exam_subject_id=item.exam_subject_id,
+                    reason=reason,
+                )
+            )
+            continue
+
+        key = (item.exam_student_id, item.exam_subject_id)
+        score = pending_scores.get(key) or existing_scores.get(key)
+        if score is None:
+            score = Score(exam_student_id=item.exam_student_id, exam_subject_id=item.exam_subject_id)
+            db.add(score)
+        score.score = item.score
+        score.score_status = item.score_status
+        score.remark = item.remark
+        pending_scores[key] = score
+        success_count += 1
+
+    db.commit()
+    return {
+        "success_count": success_count,
+        "failure_count": len(failed_items),
+        "failed_items": [item.model_dump(exclude_none=True) for item in failed_items],
+    }
+
+
+def _validate_score_item(
+    item: ScoreSaveItem,
+    students: dict[int, ExamStudent],
+    subjects: dict[int, ExamSubject],
+) -> str | None:
+    if "student_id" in item.model_extra or "class_id" in item.model_extra:
+        return "成绩保存不能直接指定学生或班级"
+
+    exam_student = students.get(item.exam_student_id)
+    if exam_student is None:
+        return "考试学生不存在"
+    exam_subject = subjects.get(item.exam_subject_id)
+    if exam_subject is None:
+        return "考试科目不存在"
+    if exam_student.status != "active" or exam_subject.status != "active":
+        return "考试学生或科目已停用"
+
+    if item.score_status == "normal":
+        if item.score is None:
+            return "正常状态必须填写数字成绩"
+        if item.score < Decimal("0"):
+            return "分数不能小于 0"
+        if item.score > exam_subject.full_score:
+            return f"分数不能超过满分 {exam_subject.full_score:.2f}"
+        return None
+
+    if item.score_status in ABNORMAL_SCORE_STATUSES:
+        if item.score is not None:
+            return "异常状态不能填写数字成绩"
+        return None
+
+    return "成绩状态不支持"

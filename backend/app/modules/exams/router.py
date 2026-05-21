@@ -10,14 +10,10 @@ from app.modules.exams.schemas import (
     ExamRead,
     ExamSubjectsUpdate,
     ExamUpdate,
-    ScoreSaveRequest,
-    ScoreSheetRead,
 )
 from app.modules.exams.service import (
     create_exam,
     get_exam,
-    get_score_sheet,
-    save_scores,
     serialize_exam,
     update_exam,
     update_exam_classes,
@@ -73,22 +69,3 @@ def update_subjects(
     current_teacher: Teacher = Depends(get_current_teacher),
 ) -> dict[str, object]:
     return serialize_exam(update_exam_subjects(db, current_teacher, exam_id, payload))
-
-
-@router.get("/{exam_id}/score-sheet", response_model=ScoreSheetRead)
-def score_sheet(
-    exam_id: int = Path(gt=0),
-    db: Session = Depends(get_db),
-    current_teacher: Teacher = Depends(get_current_teacher),
-) -> dict[str, object]:
-    return get_score_sheet(db, current_teacher, exam_id)
-
-
-@router.put("/{exam_id}/scores")
-def put_scores(
-    payload: ScoreSaveRequest,
-    exam_id: int = Path(gt=0),
-    db: Session = Depends(get_db),
-    current_teacher: Teacher = Depends(get_current_teacher),
-) -> dict[str, int]:
-    return save_scores(db, current_teacher, exam_id, payload)

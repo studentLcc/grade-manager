@@ -5,14 +5,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.errors import AppError
-from app.models import Class, Course, Exam, ExamClass, ExamStudent, ExamSubject, Score, Student, Teacher
+from app.models import Class, Course, Exam, ExamClass, ExamStudent, ExamSubject, Score, Teacher
 from app.modules.exams.roster_service import ensure_exam_roster, has_exam_scores
 from app.modules.exams.schemas import (
     ExamClassesUpdate,
     ExamCreate,
     ExamSubjectsUpdate,
     ExamUpdate,
-    ScoreSaveRequest,
 )
 
 
@@ -174,92 +173,6 @@ def update_exam_subjects(
         db.rollback()
         raise AppError(409, "DUPLICATE_RESOURCE", "考试科目重复") from exc
     return get_exam(db, teacher, exam.id)
-
-
-def get_score_sheet(db: Session, teacher: Teacher, exam_id: int) -> dict[str, object]:
-    exam = get_exam(db, teacher, exam_id)
-    ensure_exam_roster(db, exam)
-    db.commit()
-
-    students = db.execute(
-        select(ExamStudent, Student)
-        .join(Student, Student.id == ExamStudent.student_id)
-        .where(ExamStudent.exam_id == exam.id, ExamStudent.status == "active")
-        .order_by(ExamStudent.id)
-    ).all()
-    subjects = db.execute(
-        select(ExamSubject, Course)
-        .join(Course, Course.id == ExamSubject.course_id)
-        .where(ExamSubject.exam_id == exam.id, ExamSubject.status == "active")
-        .order_by(ExamSubject.id)
-    ).all()
-    return {
-        "exam_id": exam.id,
-        "students": [
-            {
-                "exam_student_id": exam_student.id,
-                "student_id": student.id,
-                "class_id": exam_student.class_id,
-                "student_no": student.student_no,
-                "name": student.name,
-                "status": exam_student.status,
-            }
-            for exam_student, student in students
-        ],
-        "subjects": [
-            {
-                "exam_subject_id": subject.id,
-                "course_id": subject.course_id,
-                "course_name": course.course_name,
-                "full_score": subject.full_score,
-                "pass_score": subject.pass_score,
-                "excellent_score": subject.excellent_score,
-                "exam_date": subject.exam_date,
-                "status": subject.status,
-            }
-            for subject, course in subjects
-        ],
-    }
-
-
-def save_scores(db: Session, teacher: Teacher, exam_id: int, payload: ScoreSaveRequest) -> dict[str, int]:
-    exam = get_exam(db, teacher, exam_id)
-    count = 0
-    for item in payload.items:
-        exam_student = db.scalar(
-            select(ExamStudent).where(
-                ExamStudent.id == item.exam_student_id,
-                ExamStudent.exam_id == exam.id,
-            )
-        )
-        exam_subject = db.scalar(
-            select(ExamSubject).where(
-                ExamSubject.id == item.exam_subject_id,
-                ExamSubject.exam_id == exam.id,
-            )
-        )
-        if exam_student is None or exam_subject is None:
-            raise AppError(404, "NOT_FOUND", "考试学生或科目不存在")
-        if exam_student.status != "active" or exam_subject.status != "active":
-            raise AppError(422, "VALIDATION_ERROR", "考试学生或科目已停用")
-        score = db.scalar(
-            select(Score).where(
-                Score.exam_student_id == item.exam_student_id,
-                Score.exam_subject_id == item.exam_subject_id,
-            )
-        )
-        if score is None:
-            score = Score(
-                exam_student_id=item.exam_student_id,
-                exam_subject_id=item.exam_subject_id,
-            )
-            db.add(score)
-        score.score = item.score
-        score.score_status = item.score_status
-        score.remark = item.remark
-        count += 1
-    db.commit()
-    return {"saved": count}
 
 
 def serialize_exam(exam: Exam) -> dict[str, object]:

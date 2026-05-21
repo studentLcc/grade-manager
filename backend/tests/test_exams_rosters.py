@@ -319,8 +319,23 @@ def test_minimal_score_save_rejects_inactive_roster_and_subject_rows(client):
             ]
         },
     )
-    assert inactive_student_save.status_code == 422
-    assert inactive_student_save.json()["code"] == "VALIDATION_ERROR"
+    assert inactive_student_save.status_code == 200
+    assert inactive_student_save.json()["success_count"] == 0
+    assert inactive_student_save.json()["failure_count"] == 1
+    assert inactive_student_save.json()["failed_items"][0]["reason"] == "考试学生或科目已停用"
+
+    readd_class = client.put(
+        f"/api/v1/exams/{exam['id']}/classes",
+        headers=headers,
+        json={"class_ids": [class_id, second_class_id]},
+    )
+    assert readd_class.status_code == 200
+    readded_sheet = client.get(f"/api/v1/exams/{exam['id']}/score-sheet", headers=headers).json()
+    assert not [
+        score
+        for score in readded_sheet["scores"]
+        if score["exam_student_id"] == second_class_student["exam_student_id"]
+    ]
 
     inactivate_subject = client.put(
         f"/api/v1/exams/{exam['id']}/subjects",
@@ -353,8 +368,30 @@ def test_minimal_score_save_rejects_inactive_roster_and_subject_rows(client):
             ]
         },
     )
-    assert inactive_subject_save.status_code == 422
-    assert inactive_subject_save.json()["code"] == "VALIDATION_ERROR"
+    assert inactive_subject_save.status_code == 200
+    assert inactive_subject_save.json()["success_count"] == 0
+    assert inactive_subject_save.json()["failure_count"] == 1
+    assert inactive_subject_save.json()["failed_items"][0]["reason"] == "考试学生或科目已停用"
+
+    reactivate_subject = client.put(
+        f"/api/v1/exams/{exam['id']}/subjects",
+        headers=headers,
+        json={
+            "subjects": [
+                {
+                    "id": exam_subject_id,
+                    "course_id": course_id,
+                    "full_score": "100",
+                    "pass_score": "60",
+                    "excellent_score": "90",
+                    "status": "active",
+                }
+            ]
+        },
+    )
+    assert reactivate_subject.status_code == 200
+    reactivated_sheet = client.get(f"/api/v1/exams/{exam['id']}/score-sheet", headers=headers).json()
+    assert reactivated_sheet["scores"][0]["score"] == "88.00"
 
 
 def test_subject_update_can_add_new_unscored_subject(client):
