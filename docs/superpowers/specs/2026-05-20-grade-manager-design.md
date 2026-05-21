@@ -151,6 +151,10 @@ Constraints:
 
 `students.class_id` means the student's current class. It is not enough for historical exam statistics after a student transfers. Historical exam class membership is captured through `exam_students`.
 
+Ownership rule:
+
+- `students.teacher_id` must match the `teacher_id` of the referenced current class.
+
 ### `courses`
 
 Stores teacher-owned subjects.
@@ -200,6 +204,7 @@ Rules:
 - `start_time` and `end_time` are optional in the first version.
 - When both times are present, `start_time` must be earlier than `end_time`.
 - A schedule row must reference a class and course owned by the current teacher.
+- `schedules.teacher_id` must match both the referenced class owner and the referenced course owner.
 - Schedule records are not linked to exams or score statistics in the first version.
 - The dashboard's "today" schedule uses the configured application timezone, defaulting to `Asia/Shanghai`.
 
@@ -298,7 +303,7 @@ Constraints:
 Purpose:
 
 - Freeze which students participate in an exam.
-- Freeze each student's class for that exam.
+- Freeze each student's class for that exam. `exam_students.class_id` means the student's class when participating in this exam, not the student's current class.
 - Preserve historical statistics even if the student later transfers to another class.
 
 When an exam is created or the score sheet is first generated, the backend populates `exam_students` from the selected `exam_classes` and the current active students in those classes. After any score exists for the exam, the roster is frozen for destructive changes: later refreshes must not delete existing `exam_students` rows, must not change their `class_id`, and must not orphan or invalidate existing `scores`.
@@ -325,8 +330,6 @@ Important fields:
 
 - `id`
 - `exam_student_id`
-- `student_id`
-- `class_id`
 - `exam_subject_id`
 - `score`
 - `score_status`
@@ -342,9 +345,8 @@ Rules:
 
 - `score` uses `DECIMAL(6,2)`.
 - `exam_student_id` references the student's row in the exam snapshot.
-- `student_id` and `class_id` are copied from `exam_students` as denormalized snapshot fields for simpler queries and historical reporting.
 - Score writes must verify that `exam_student_id` belongs to the same exam as `exam_subject_id`.
-- Score writes must verify that `student_id` equals `exam_students.student_id` and `class_id` equals `exam_students.class_id`.
+- Student and class information for a score is read through `exam_student_id`; the first version does not duplicate `student_id` or `class_id` in `scores`.
 - No `scores` row means not entered.
 - `score_status = normal` requires a decimal score.
 - `score_status in absent/deferred/cheating/exempt` normally requires `score` to be null.
@@ -403,9 +405,10 @@ Important fields:
 - `field`
 - `raw_value`
 - `reason`
+- `raw_data`
 - `created_at`
 
-Use this table instead of putting all row errors into one large text field.
+Use this table instead of putting all row errors into one large text field. `raw_data` is optional and may store the original row payload when one field value is not enough to diagnose the import failure.
 
 ## Status Rules
 
@@ -505,13 +508,13 @@ Rules:
 - `POST /api/v1/exams/{id}/scores/import` writes valid rows and records invalid rows in `import_errors`.
 - `POST /api/v1/exams/{id}/scores/import` may later support `dry_run=true` for validation-only import.
 - Score writes identify rows by `exam_student_id` and `exam_subject_id`.
-- Score writes reject mismatched exam, student, class, or teacher ownership relationships.
+- Score writes reject mismatched exams or teacher ownership. Student and class ownership are resolved through the referenced `exam_students` row.
 
 Bulk score save response should include:
 
 - success count
 - failure count
-- failed items with `exam_student_id`, `student_id`, `exam_subject_id`, and reason
+- failed items with `exam_student_id`, `exam_subject_id`, and reason
 
 ### Imports
 
@@ -714,12 +717,13 @@ Statistics:
 ## Business Rules
 
 - A teacher can access only their own data.
+- Teacher-owned foreign keys must be internally consistent. For example, `students.teacher_id` must match the referenced class owner, and `schedules.teacher_id` must match the referenced class and course owners.
 - An exam must include at least one class and one subject.
 - An exam's student list is frozen into `exam_students` for historical correctness.
 - Score-sheet refresh must use a merge/retention policy after scoring starts, not a destructive rebuild.
 - A score can be entered only for a student in the exam snapshot.
 - Scores reference `exam_students` directly through `exam_student_id`.
-- Score `student_id` and `class_id` are copied from the exam snapshot for reporting and must match the referenced snapshot row.
+- Score student and class data are resolved from `exam_students`; `scores` does not duplicate `student_id` or `class_id` in the first version.
 - Exam threshold updates must preserve `0 <= pass_score <= excellent_score <= full_score` and may not make existing normal scores exceed the full score.
 - Soft deletion is preferred for classes, students, courses, exams, and subjects with historical data.
 - Missing score row means not entered.
@@ -733,12 +737,14 @@ Backend tests:
 - Register and login.
 - JWT expiration and unauthorized access.
 - Teacher data isolation.
+- Student ownership consistency with the referenced class.
 - Unique constraints for students, courses, exam subjects, and scores.
-- Schedule CRUD and ownership validation.
+- Schedule CRUD and class/course ownership consistency.
 - Creating exams with classes and subjects.
 - Generating exam student snapshots.
 - Preventing score entry for students not in an exam snapshot.
 - Preventing score entry when `exam_student_id` and `exam_subject_id` belong to different exams.
+- Rejecting score payloads that try to set `student_id` or `class_id` directly.
 - Score status and numeric score validation.
 - Preventing deletion/removal of subjects with scores.
 - Class removal before scoring, class append after scoring, and class removal rejection when scores exist.
