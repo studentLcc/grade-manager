@@ -29,6 +29,48 @@ def get_exam(db: Session, teacher: Teacher, exam_id: int) -> Exam:
     return exam
 
 
+def get_active_exam_for_mutation(db: Session, teacher: Teacher, exam_id: int) -> Exam:
+    exam = get_exam(db, teacher, exam_id)
+    if exam.status != "active":
+        raise AppError(422, "VALIDATION_ERROR", "考试已停用，不能修改成绩")
+    return exam
+
+
+def list_exams(
+    db: Session,
+    teacher: Teacher,
+    page: int,
+    page_size: int,
+    keyword: str | None = None,
+    exam_type: str | None = None,
+    term: str | None = None,
+    status: str | None = None,
+) -> tuple[list[Exam], int]:
+    query = (
+        select(Exam)
+        .options(
+            selectinload(Exam.exam_classes).selectinload(ExamClass.class_),
+            selectinload(Exam.exam_subjects).selectinload(ExamSubject.course),
+        )
+        .where(Exam.teacher_id == teacher.id)
+        .order_by(Exam.created_at.desc(), Exam.id.desc())
+    )
+    if status is None:
+        query = query.where(Exam.status == "active")
+    else:
+        query = query.where(Exam.status == status)
+    if keyword:
+        query = query.where(Exam.name.contains(keyword))
+    if exam_type:
+        query = query.where(Exam.exam_type == exam_type)
+    if term:
+        query = query.where(Exam.term == term)
+
+    total = db.scalar(select(func.count()).select_from(query.subquery())) or 0
+    items = db.scalars(query.offset((page - 1) * page_size).limit(page_size)).all()
+    return list(items), total
+
+
 def create_exam(db: Session, teacher: Teacher, payload: ExamCreate) -> Exam:
     _ensure_classes_owned(db, teacher, payload.class_ids)
     _ensure_courses_owned(db, teacher, [subject.course_id for subject in payload.subjects])
@@ -57,6 +99,13 @@ def update_exam(db: Session, teacher: Teacher, exam_id: int, payload: ExamUpdate
     exam = get_exam(db, teacher, exam_id)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(exam, field, value)
+    db.commit()
+    return get_exam(db, teacher, exam_id)
+
+
+def delete_exam(db: Session, teacher: Teacher, exam_id: int) -> Exam:
+    exam = get_exam(db, teacher, exam_id)
+    exam.status = "inactive"
     db.commit()
     return get_exam(db, teacher, exam_id)
 

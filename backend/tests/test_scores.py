@@ -79,6 +79,34 @@ def test_abnormal_score_status_requires_null_score(client):
     assert response.json()["failed_items"][0]["reason"] == "异常状态不能填写数字成绩"
 
 
+def test_inactive_exam_rejects_score_save(client):
+    headers, exam, sheet = create_exam_sheet(client)
+    deleted = client.delete(f"/api/v1/exams/{exam['id']}", headers=headers)
+    assert deleted.status_code == 200
+    inactive_sheet = client.get(f"/api/v1/exams/{exam['id']}/score-sheet", headers=headers)
+    assert inactive_sheet.status_code == 200
+    assert inactive_sheet.json()["exam"]["status"] == "inactive"
+
+    response = client.put(
+        f"/api/v1/exams/{exam['id']}/scores",
+        headers=headers,
+        json={
+            "items": [
+                {
+                    "exam_student_id": sheet["students"][0]["exam_student_id"],
+                    "exam_subject_id": sheet["subjects"][0]["exam_subject_id"],
+                    "score": "88",
+                    "score_status": "normal",
+                    "remark": "",
+                }
+            ]
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "VALIDATION_ERROR"
+
+
 def test_mixed_batch_inactive_student_failure_does_not_block_valid_score(client):
     headers, class_id, course_id, _ = seed_base(client)
     second_class_id = client.post(

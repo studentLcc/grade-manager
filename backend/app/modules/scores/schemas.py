@@ -41,6 +41,7 @@ class ScoreSheetExam(BaseModel):
     name: str
     exam_type: str | None
     term: str | None
+    status: str
 
 
 class ScoreSheetClass(BaseModel):

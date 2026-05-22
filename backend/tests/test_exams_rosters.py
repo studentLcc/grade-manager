@@ -55,6 +55,100 @@ def test_create_exam_with_classes_subjects_and_snapshot(client):
     assert sheet.json()["students"][0]["student_id"] == student_id
 
 
+def test_list_exams_and_patch_exam_setup_updates(client):
+    headers, class_id, course_id, _ = seed_base(client)
+    second_class_id = client.post(
+        "/api/v1/classes",
+        headers=headers,
+        json={"name": "二班", "grade": "七年级", "academic_year": "2026-2027"},
+    ).json()["id"]
+    second_course_id = client.post(
+        "/api/v1/courses",
+        headers=headers,
+        json={"course_name": "语文"},
+    ).json()["id"]
+    exam = client.post(
+        "/api/v1/exams",
+        headers=headers,
+        json={
+            "name": "期中考试",
+            "exam_type": "school",
+            "term": "2026-2027-1",
+            "class_ids": [class_id],
+            "subjects": [{"course_id": course_id, "full_score": "100", "pass_score": "60", "excellent_score": "90"}],
+        },
+    ).json()
+
+    exam_list = client.get("/api/v1/exams", headers=headers)
+    assert exam_list.status_code == 200
+    assert exam_list.json()["total"] == 1
+    assert exam_list.json()["items"][0]["id"] == exam["id"]
+
+    classes = client.patch(
+        f"/api/v1/exams/{exam['id']}/classes",
+        headers=headers,
+        json={"class_ids": [class_id, second_class_id]},
+    )
+    assert classes.status_code == 200
+    assert {item["id"] for item in classes.json()["classes"]} == {class_id, second_class_id}
+
+    subjects = client.patch(
+        f"/api/v1/exams/{exam['id']}/subjects",
+        headers=headers,
+        json={
+            "subjects": [
+                {"id": exam["subjects"][0]["id"], "course_id": course_id, "full_score": "100", "pass_score": "60", "excellent_score": "90"},
+                {"course_id": second_course_id, "full_score": "100", "pass_score": "60", "excellent_score": "90"},
+            ]
+        },
+    )
+    assert subjects.status_code == 200
+    assert {item["course_id"] for item in subjects.json()["subjects"]} == {course_id, second_course_id}
+
+    deleted = client.delete(f"/api/v1/exams/{exam['id']}", headers=headers)
+    assert deleted.status_code == 200
+    assert deleted.json()["status"] == "inactive"
+
+    active_list = client.get("/api/v1/exams", headers=headers)
+    assert active_list.status_code == 200
+    assert active_list.json()["total"] == 0
+
+    inactive_list = client.get("/api/v1/exams?status=inactive", headers=headers)
+    assert inactive_list.status_code == 200
+    assert inactive_list.json()["total"] == 1
+
+
+def test_inactive_exam_score_sheet_does_not_refresh_roster(client):
+    headers, class_id, course_id, student_id = seed_base(client)
+    exam = client.post(
+        "/api/v1/exams",
+        headers=headers,
+        json={
+            "name": "期中考试",
+            "exam_type": "school",
+            "term": "2026-2027-1",
+            "class_ids": [class_id],
+            "subjects": [{"course_id": course_id, "full_score": "100", "pass_score": "60", "excellent_score": "90"}],
+        },
+    ).json()
+    initial_sheet = client.get(f"/api/v1/exams/{exam['id']}/score-sheet", headers=headers)
+    assert initial_sheet.status_code == 200
+    assert [row["student_id"] for row in initial_sheet.json()["students"]] == [student_id]
+
+    deleted = client.delete(f"/api/v1/exams/{exam['id']}", headers=headers)
+    assert deleted.status_code == 200
+    client.post(
+        "/api/v1/students",
+        headers=headers,
+        json={"class_id": class_id, "student_no": "S002", "name": "李四"},
+    )
+
+    inactive_sheet = client.get(f"/api/v1/exams/{exam['id']}/score-sheet", headers=headers)
+    assert inactive_sheet.status_code == 200
+    assert inactive_sheet.json()["exam"]["status"] == "inactive"
+    assert [row["student_id"] for row in inactive_sheet.json()["students"]] == [student_id]
+
+
 def test_exam_rejects_invalid_threshold_order(client):
     headers, class_id, course_id, _ = seed_base(client)
     response = client.post(

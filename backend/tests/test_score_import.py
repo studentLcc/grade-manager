@@ -106,6 +106,32 @@ def test_score_import_uses_exam_snapshot_and_records_invalid_rows(client):
     assert body["status"] == "failed"
 
 
+def test_inactive_exam_rejects_score_import_and_template(client):
+    headers, exam, sheet = create_exam_sheet(client)
+    deleted = client.delete(f"/api/v1/exams/{exam['id']}", headers=headers)
+    assert deleted.status_code == 200
+
+    template = client.get(f"/api/v1/exams/{exam['id']}/score-template", headers=headers)
+    assert template.status_code == 422
+    assert template.json()["code"] == "VALIDATION_ERROR"
+
+    file_obj = score_workbook("S001", sheet["subjects"][0]["course_name"], "88")
+    response = client.post(
+        f"/api/v1/exams/{exam['id']}/scores/import",
+        headers=headers,
+        files={
+            "file": (
+                "scores.xlsx",
+                file_obj,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "VALIDATION_ERROR"
+
+
 def test_score_import_rejects_non_finite_score_value(client):
     headers, exam, sheet = create_exam_sheet(client)
     subject_name = sheet["subjects"][0]["course_name"]

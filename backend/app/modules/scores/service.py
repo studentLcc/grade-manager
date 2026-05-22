@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Class, Course, ExamClass, ExamStudent, ExamSubject, Score, Student, Teacher
-from app.modules.exams.service import get_exam
+from app.modules.exams.service import get_active_exam_for_mutation, get_exam
 from app.modules.exams.roster_service import ensure_exam_roster
 from app.modules.scores.schemas import ScoreFailureItem, ScoreSaveItem, ScoreSaveRequest
 
@@ -13,8 +13,9 @@ ABNORMAL_SCORE_STATUSES = {"absent", "deferred", "cheating", "exempt"}
 
 def get_score_sheet(db: Session, teacher: Teacher, exam_id: int) -> dict[str, object]:
     exam = get_exam(db, teacher, exam_id)
-    ensure_exam_roster(db, exam)
-    db.commit()
+    if exam.status == "active":
+        ensure_exam_roster(db, exam)
+        db.commit()
 
     classes = db.execute(
         select(ExamClass, Class)
@@ -53,6 +54,7 @@ def get_score_sheet(db: Session, teacher: Teacher, exam_id: int) -> dict[str, ob
             "name": exam.name,
             "exam_type": exam.exam_type,
             "term": exam.term,
+            "status": exam.status,
         },
         "classes": [{"id": class_.id, "name": class_.name} for _, class_ in classes],
         "subjects": [
@@ -92,7 +94,7 @@ def get_score_sheet(db: Session, teacher: Teacher, exam_id: int) -> dict[str, ob
 
 
 def save_scores(db: Session, teacher: Teacher, exam_id: int, payload: ScoreSaveRequest) -> dict[str, object]:
-    exam = get_exam(db, teacher, exam_id)
+    exam = get_active_exam_for_mutation(db, teacher, exam_id)
     students = {
         row.id: row
         for row in db.scalars(select(ExamStudent).where(ExamStudent.exam_id == exam.id)).all()

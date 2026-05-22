@@ -5,6 +5,9 @@ import RegisterView from '../views/RegisterView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import ClassesStudentsView from '../views/ClassesStudentsView.vue'
 import CoursesScheduleView from '../views/CoursesScheduleView.vue'
+import ExamCenterView from '../views/ExamCenterView.vue'
+import ExamDetailView from '../views/ExamDetailView.vue'
+import ScoreEntryView from '../views/ScoreEntryView.vue'
 import { useAuthStore } from '../stores/auth'
 
 const placeholder = (title: string) => ({
@@ -24,9 +27,9 @@ const router = createRouter({
         { path: 'dashboard', component: DashboardView },
         { path: 'classes-students', component: ClassesStudentsView },
         { path: 'courses-schedule', component: CoursesScheduleView },
-        { path: 'exam-center', component: placeholder('考试中心') },
-        { path: 'exam-center/:id', component: placeholder('考试详情') },
-        { path: 'exam-center/:id/scores', component: placeholder('成绩录入') },
+        { path: 'exam-center', component: ExamCenterView },
+        { path: 'exam-center/:id', component: ExamDetailView },
+        { path: 'exam-center/:id/scores', component: ScoreEntryView },
         { path: 'exam-center/:id/statistics', component: placeholder('考试统计') },
         { path: 'statistics', component: placeholder('综合统计') },
         { path: 'imports', component: placeholder('导入记录') },

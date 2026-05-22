@@ -16,6 +16,15 @@ a {
   text-decoration: none;
 }
 
+.gm-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
 .gm-shell {
   display: flex;
   min-height: 100vh;
@@ -318,6 +327,114 @@ a {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+.gm-wizard,
+.gm-subject-editor,
+.gm-score-table,
+.gm-confirm-list {
+  display: grid;
+  gap: 12px;
+}
+
+.gm-wizard-panel {
+  min-height: 260px;
+  padding-top: 8px;
+}
+
+.gm-wizard-actions,
+.gm-import-actions,
+.gm-chip-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gm-wizard-actions {
+  justify-content: flex-end;
+}
+
+.gm-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.gm-check-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  padding: 10px;
+}
+
+.gm-check-card strong,
+.gm-check-card small {
+  display: block;
+}
+
+.gm-check-card small {
+  margin-top: 2px;
+  color: var(--gm-muted);
+}
+
+.gm-subject-row {
+  display: grid;
+  grid-template-columns: 1.1fr repeat(3, 96px) 140px minmax(120px, 1fr) 36px;
+  gap: 8px;
+  align-items: center;
+}
+
+.gm-confirm-list div,
+.gm-detail-grid div {
+  display: grid;
+  gap: 4px;
+}
+
+.gm-confirm-list span,
+.gm-detail-grid span {
+  color: var(--gm-muted);
+  font-size: 12px;
+}
+
+.gm-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.gm-chip {
+  border: 1px solid #bfe5ea;
+  border-radius: var(--gm-radius);
+  background: #eef9fb;
+  padding: 4px 8px;
+  color: #0f6f78;
+  font-size: 13px;
+}
+
+.gm-score-cell {
+  display: grid;
+  grid-template-columns: minmax(52px, 1fr) 96px 92px;
+  gap: 6px;
+  align-items: center;
+  min-width: 190px;
+}
+
+.gm-score-cell.has-error {
+  border-radius: var(--gm-radius);
+  background: #fff3f2;
+  padding: 4px;
+}
+
+.gm-score-cell small {
+  grid-column: 1 / -1;
+  color: #b42318;
+}
+
+.gm-score-subject {
+  color: var(--gm-muted);
+  font-size: 12px;
 }
 
 .gm-auth-page {

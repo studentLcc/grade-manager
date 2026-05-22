@@ -6,12 +6,12 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
 from app.models import Class, Course, ExamClass, ExamStudent, ExamSubject, Student, Teacher
-from app.modules.exams.service import get_exam
+from app.modules.exams.service import get_active_exam_for_mutation
 from app.modules.exams.roster_service import ensure_exam_roster
 
 
 def build_score_template(db: Session, teacher: Teacher, exam_id: int, class_id: int | None) -> bytes:
-    exam = get_exam(db, teacher, exam_id)
+    exam = get_active_exam_for_mutation(db, teacher, exam_id)
     ensure_exam_roster(db, exam)
     db.commit()
 

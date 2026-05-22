@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import Course, ExamStudent, ExamSubject, Score, Student, Teacher
-from app.modules.exams.service import get_exam
+from app.modules.exams.service import get_active_exam_for_mutation
 from app.modules.imports.service import (
     create_import_batch,
     finalize_import_batch,
@@ -29,7 +29,7 @@ def import_scores(
     file: UploadFile,
     overwrite_existing: bool,
 ) -> dict[str, object]:
-    exam = get_exam(db, teacher, exam_id)
+    exam = get_active_exam_for_mutation(db, teacher, exam_id)
     batch = create_import_batch(
         db,
         teacher,
