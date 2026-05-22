@@ -1,41 +1,98 @@
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { DataAnalysis, Files, Notebook, Reading, School, User } from '@element-plus/icons-vue'
+import {
+  getClassAverageTrend,
+  getDashboardScoreOverview,
+  getDashboardSummary,
+  getRecentExams,
+  getTodaySchedule,
+  type ClassAverageTrendPoint,
+  type DashboardSummary,
+  type RecentExamRecord,
+  type ScoreOverview,
+  type TodayScheduleRecord,
+} from '../api/dashboard'
+import ClassAverageTrend from '../components/dashboard/ClassAverageTrend.vue'
+import MetricCard from '../components/dashboard/MetricCard.vue'
+import RecentExams from '../components/dashboard/RecentExams.vue'
+import ScoreOverviewCard from '../components/dashboard/ScoreOverviewCard.vue'
+import TodaySchedule from '../components/dashboard/TodaySchedule.vue'
+
+const router = useRouter()
+const loading = ref(false)
+const summary = ref<DashboardSummary>({
+  class_count: 0,
+  student_count: 0,
+  course_count: 0,
+  recent_exam_count: 0,
+  pending_score_count: 0,
+})
+const schedules = ref<TodayScheduleRecord[]>([])
+const exams = ref<RecentExamRecord[]>([])
+const overview = ref<ScoreOverview | null>(null)
+const trend = ref<ClassAverageTrendPoint[]>([])
+
+async function loadDashboard() {
+  loading.value = true
+  try {
+    const [summaryResponse, scheduleResponse, examResponse, overviewResponse, trendResponse] = await Promise.all([
+      getDashboardSummary(),
+      getTodaySchedule(),
+      getRecentExams(),
+      getDashboardScoreOverview(),
+      getClassAverageTrend(),
+    ])
+    summary.value = summaryResponse.data
+    schedules.value = scheduleResponse.data.items
+    exams.value = examResponse.data.items
+    overview.value = overviewResponse.data
+    trend.value = trendResponse.data.items
+  } catch {
+    // Global http interceptor shows the user-facing error.
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadDashboard)
+</script>
+
 <template>
-  <section class="gm-dashboard">
+  <section v-loading="loading" class="gm-dashboard">
     <div class="gm-page-header">
       <div>
         <h1>工作台</h1>
-        <p>查看近期考试、待录入成绩和班级概览。</p>
+        <p>快速查看今日课程、近期考试和成绩处理概况。</p>
       </div>
-      <el-button type="primary">新建考试</el-button>
+      <el-button type="primary" @click="router.push('/exam-center')">创建考试</el-button>
     </div>
 
     <div class="gm-metrics">
-      <article class="gm-card">
-        <span>班级</span>
-        <strong>0</strong>
-      </article>
-      <article class="gm-card">
-        <span>学生</span>
-        <strong>0</strong>
-      </article>
-      <article class="gm-card">
-        <span>进行中考试</span>
-        <strong>0</strong>
-      </article>
-      <article class="gm-card">
-        <span>待处理导入</span>
-        <strong>0</strong>
-      </article>
+      <MetricCard label="班级数" :value="summary.class_count" tone="teal" :icon="School" />
+      <MetricCard label="学生数" :value="summary.student_count" tone="blue" :icon="User" />
+      <MetricCard label="课程数" :value="summary.course_count" tone="indigo" :icon="Reading" />
+      <MetricCard label="待录入成绩" :value="summary.pending_score_count" tone="amber" :icon="Notebook" />
     </div>
 
-    <div class="gm-content-grid">
-      <section class="gm-page-card">
-        <h2>近期考试</h2>
-        <p>后续任务将接入考试列表和成绩录入入口。</p>
-      </section>
-      <section class="gm-page-card">
-        <h2>班级动态</h2>
-        <p>后续任务将展示班级、课程和导入状态。</p>
-      </section>
+    <div class="gm-dashboard-grid">
+      <TodaySchedule :schedules="schedules" />
+      <RecentExams :exams="exams" />
+      <ScoreOverviewCard :overview="overview" />
+      <ClassAverageTrend :points="trend" />
     </div>
+
+    <section class="gm-page-card">
+      <div class="gm-section-title">
+        <h2>快捷操作</h2>
+      </div>
+      <div class="gm-quick-actions">
+        <el-button type="primary" :icon="Files" @click="router.push('/exam-center')">创建考试</el-button>
+        <el-button :icon="User" @click="router.push('/classes-students')">导入学生</el-button>
+        <el-button :icon="Notebook" @click="router.push('/exam-center')">录入成绩</el-button>
+        <el-button :icon="DataAnalysis" @click="router.push('/statistics')">查看统计</el-button>
+      </div>
+    </section>
   </section>
 </template>

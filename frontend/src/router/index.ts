@@ -8,6 +8,10 @@ import CoursesScheduleView from '../views/CoursesScheduleView.vue'
 import ExamCenterView from '../views/ExamCenterView.vue'
 import ExamDetailView from '../views/ExamDetailView.vue'
 import ScoreEntryView from '../views/ScoreEntryView.vue'
+import ExamStatisticsView from '../views/ExamStatisticsView.vue'
+import ImportRecordsView from '../views/ImportRecordsView.vue'
+import ImportDetailView from '../views/ImportDetailView.vue'
+import AccountSettingsView from '../views/AccountSettingsView.vue'
 import { useAuthStore } from '../stores/auth'
 
 const placeholder = (title: string) => ({
@@ -30,11 +34,11 @@ const router = createRouter({
         { path: 'exam-center', component: ExamCenterView },
         { path: 'exam-center/:id', component: ExamDetailView },
         { path: 'exam-center/:id/scores', component: ScoreEntryView },
-        { path: 'exam-center/:id/statistics', component: placeholder('考试统计') },
+        { path: 'exam-center/:id/statistics', component: ExamStatisticsView },
         { path: 'statistics', component: placeholder('综合统计') },
-        { path: 'imports', component: placeholder('导入记录') },
-        { path: 'imports/:id', component: placeholder('导入详情') },
-        { path: 'account', component: placeholder('账号设置') },
+        { path: 'imports', component: ImportRecordsView },
+        { path: 'imports/:id', component: ImportDetailView },
+        { path: 'account', component: AccountSettingsView },
       ],
     },
   ],
