@@ -3,6 +3,8 @@ import AppLayout from '../layouts/AppLayout.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import DashboardView from '../views/DashboardView.vue'
+import ClassesStudentsView from '../views/ClassesStudentsView.vue'
+import CoursesScheduleView from '../views/CoursesScheduleView.vue'
 import { useAuthStore } from '../stores/auth'
 
 const placeholder = (title: string) => ({
@@ -20,8 +22,8 @@ const router = createRouter({
       children: [
         { path: '', redirect: '/dashboard' },
         { path: 'dashboard', component: DashboardView },
-        { path: 'classes-students', component: placeholder('班级与学生') },
-        { path: 'courses-schedule', component: placeholder('课程与课表') },
+        { path: 'classes-students', component: ClassesStudentsView },
+        { path: 'courses-schedule', component: CoursesScheduleView },
         { path: 'exam-center', component: placeholder('考试中心') },
         { path: 'exam-center/:id', component: placeholder('考试详情') },
         { path: 'exam-center/:id/scores', component: placeholder('成绩录入') },
