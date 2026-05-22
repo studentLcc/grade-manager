@@ -1,0 +1,254 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 1080px;
+  color: var(--gm-text);
+  background: var(--gm-bg);
+  font-family:
+    Inter, "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.gm-shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--gm-bg);
+}
+
+.gm-sidebar {
+  width: var(--gm-sidebar-width);
+  flex: 0 0 var(--gm-sidebar-width);
+  border-right: 1px solid var(--gm-border);
+  background: #eef9fb;
+  padding: 14px 10px;
+}
+
+.gm-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-bottom: 12px;
+  color: var(--gm-text);
+}
+
+.gm-brand-mark {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: var(--gm-radius);
+  color: #fff;
+  background: var(--gm-teal);
+  font-weight: 700;
+}
+
+.gm-brand strong,
+.gm-brand span {
+  display: block;
+}
+
+.gm-brand strong {
+  font-size: 14px;
+}
+
+.gm-brand span {
+  margin-top: 2px;
+  color: var(--gm-muted);
+  font-size: 12px;
+}
+
+.gm-nav {
+  display: grid;
+  gap: 8px;
+}
+
+.gm-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 38px;
+  border-radius: var(--gm-radius);
+  padding: 0 10px;
+  color: #42616d;
+  font-size: 14px;
+}
+
+.gm-nav-item:hover {
+  background: #dff3f6;
+  color: var(--gm-text);
+}
+
+.gm-nav-item.is-active {
+  color: #0f6f78;
+  background: #d9f1f4;
+  font-weight: 600;
+}
+
+.gm-workspace {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.gm-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 58px;
+  border-bottom: 1px solid var(--gm-border);
+  background: var(--gm-card);
+  padding: 10px 14px;
+}
+
+.gm-search {
+  width: 360px;
+}
+
+.gm-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gm-user-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  background: #fff;
+  padding: 0 10px 0 6px;
+  color: var(--gm-text);
+  cursor: pointer;
+}
+
+.gm-avatar {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--gm-blue);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.gm-main {
+  padding: 12px 14px 16px;
+}
+
+.gm-dashboard,
+.gm-content-grid {
+  display: grid;
+  gap: var(--gm-gap);
+}
+
+.gm-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  background: var(--gm-card);
+  padding: 12px;
+}
+
+.gm-page-header h1,
+.gm-page-card h1,
+.gm-page-card h2 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+.gm-page-header p,
+.gm-page-card p {
+  margin: 5px 0 0;
+  color: var(--gm-muted);
+  font-size: 13px;
+}
+
+.gm-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--gm-gap);
+}
+
+.gm-card,
+.gm-page-card {
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  background: var(--gm-card);
+  padding: 12px;
+}
+
+.gm-card {
+  display: grid;
+  gap: 8px;
+}
+
+.gm-card span {
+  color: var(--gm-muted);
+  font-size: 13px;
+}
+
+.gm-card strong {
+  color: var(--gm-text);
+  font-size: 24px;
+}
+
+.gm-content-grid {
+  grid-template-columns: 1.4fr 1fr;
+}
+
+.gm-auth-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  background: var(--gm-bg);
+  padding: 24px;
+}
+
+.gm-auth-panel {
+  width: 360px;
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  background: var(--gm-card);
+  padding: 22px;
+}
+
+.gm-auth-panel h1 {
+  margin: 0 0 16px;
+  font-size: 22px;
+}
+
+.gm-auth-panel .el-button {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.gm-auth-panel a {
+  color: var(--gm-blue);
+  font-size: 13px;
+}
+
+@media (max-width: 1080px) {
+  body {
+    min-width: 0;
+  }
+
+  .gm-shell {
+    min-width: 900px;
+  }
+}
