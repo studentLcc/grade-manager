@@ -12,11 +12,8 @@ import ExamStatisticsView from '../views/ExamStatisticsView.vue'
 import ImportRecordsView from '../views/ImportRecordsView.vue'
 import ImportDetailView from '../views/ImportDetailView.vue'
 import AccountSettingsView from '../views/AccountSettingsView.vue'
+import StatisticsView from '../views/StatisticsView.vue'
 import { useAuthStore } from '../stores/auth'
-
-const placeholder = (title: string) => ({
-  template: `<section class="gm-page-card"><h1>${title}</h1><p>该功能将在后续任务中实现。</p></section>`,
-})
 
 const router = createRouter({
   history: createWebHistory(),
@@ -35,7 +32,7 @@ const router = createRouter({
         { path: 'exam-center/:id', component: ExamDetailView },
         { path: 'exam-center/:id/scores', component: ScoreEntryView },
         { path: 'exam-center/:id/statistics', component: ExamStatisticsView },
-        { path: 'statistics', component: placeholder('综合统计') },
+        { path: 'statistics', component: StatisticsView },
         { path: 'imports', component: ImportRecordsView },
         { path: 'imports/:id', component: ImportDetailView },
         { path: 'account', component: AccountSettingsView },

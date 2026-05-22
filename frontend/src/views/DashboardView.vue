@@ -60,7 +60,7 @@ onMounted(loadDashboard)
 </script>
 
 <template>
-  <section v-loading="loading" class="gm-dashboard">
+  <section v-loading="loading" class="gm-dashboard" aria-label="仪表盘">
     <div class="gm-page-header">
       <div>
         <h1>工作台</h1>

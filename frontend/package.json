@@ -5,7 +5,7 @@
     "build": "vue-tsc -b && vite build",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "lint": "eslint \"src/**/*.{ts,vue}\" \"tests/**/*.ts\" \"*.config.{js,ts}\""
+    "lint": "eslint \"src/**/*.{ts,vue}\" \"tests/**/*.ts\" \"e2e/**/*.ts\" \"*.config.{js,ts}\""
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",

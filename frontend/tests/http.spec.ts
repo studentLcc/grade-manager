@@ -79,4 +79,28 @@ describe('http interceptor', () => {
     expect(mocks.routerPush).toHaveBeenCalledWith('/login')
     expect(mocks.errorMessage).toHaveBeenCalledWith('登录已过期，请重新登录')
   })
+
+  it('expires session for protected 401 responses even when no token is present', async () => {
+    mocks.authStore.token = null
+    const { http } = await import('../src/api/http')
+    const config: AxiosRequestConfig = {
+      url: '/dashboard/summary',
+      adapter: (requestConfig) =>
+        Promise.reject({
+          config: requestConfig,
+          response: {
+            status: 401,
+            data: { message: '未认证' },
+          },
+        }),
+    }
+
+    await expect(http.request(config)).rejects.toMatchObject({
+      response: { status: 401 },
+    })
+
+    expect(mocks.authStore.clearSession).toHaveBeenCalledOnce()
+    expect(mocks.routerPush).toHaveBeenCalledWith('/login')
+    expect(mocks.errorMessage).toHaveBeenCalledWith('登录已过期，请重新登录')
+  })
 })

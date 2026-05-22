@@ -43,7 +43,7 @@ function logout() {
 
 <template>
   <div class="gm-shell">
-    <aside class="gm-sidebar">
+    <aside class="gm-sidebar" data-testid="app-sidebar">
       <div class="gm-brand">
         <div class="gm-brand-mark">G</div>
         <div>

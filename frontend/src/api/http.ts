@@ -28,10 +28,9 @@ http.interceptors.response.use(
   async (error) => {
     const status = error.response?.status
     const message = error.response?.data?.message || '系统错误，请稍后重试'
-    const hadToken = Boolean(error.config?.headers?.Authorization || useAuthStore().token)
     const publicAuthEndpoint = isPublicAuthEndpoint(error.config?.url)
 
-    if (status === 401 && hadToken && !publicAuthEndpoint) {
+    if (status === 401 && !publicAuthEndpoint) {
       useAuthStore().clearSession()
       await router.push('/login')
       ElMessage.error('登录已过期，请重新登录')

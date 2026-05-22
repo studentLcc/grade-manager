@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
+import { computed, h, inject, provide, type ComputedRef, type VNode } from 'vue'
 import ScoreOverviewCard from '../src/components/dashboard/ScoreOverviewCard.vue'
 import DashboardView from '../src/views/DashboardView.vue'
 import ExamStatisticsView from '../src/views/ExamStatisticsView.vue'
+import StatisticsView from '../src/views/StatisticsView.vue'
 import { http } from '../src/api/http'
 
 const routerMocks = vi.hoisted(() => ({
@@ -39,18 +41,46 @@ const selectStub = {
   template: '<select :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)"><slot /></select>',
 }
 const inputNumberStub = { template: '<input />' }
+const inputStub = { template: '<input />' }
+const paginationStub = { template: '<div />' }
+type TableRow = Record<string, unknown>
+const tableRowsKey = Symbol('tableRows')
 const tableStub = {
   props: ['data'],
-  template: '<div><template v-for="(row, index) in data" :key="row.id || row.rank || row.label || index"><slot :row="row" />{{ Object.values(row).join(" ") }}</template></div>',
+  setup(props: { data?: TableRow[] }, { slots }: { slots: { default?: () => VNode[] } }) {
+    const rows = computed(() => props.data || [])
+    provide(tableRowsKey, rows)
+    return () =>
+      h('div', [
+        slots.default?.(),
+        ...rows.value.map((row) => h('div', { key: String(row.id || row.rank || row.label || '') }, Object.values(row).join(' '))),
+      ])
+  },
 }
-const tableColumnStub = { props: ['label'], template: '<div>{{ label }}</div>' }
+const tableColumnStub = {
+  props: ['label'],
+  setup(props: { label?: string }, { slots }: { slots: { default?: (scope: { row: TableRow }) => VNode[] } }) {
+    const rows = inject<ComputedRef<TableRow[]>>(tableRowsKey, computed(() => []))
+    return () => {
+      const children: (string | VNode)[] = [props.label || '']
+      if (slots.default) {
+        for (const row of rows.value) {
+          children.push(...slots.default({ row }))
+        }
+      }
+      return h('div', children)
+    }
+  },
+}
 
 const globalStubs = {
   'el-button': buttonStub,
   'el-empty': emptyStub,
   'el-icon': iconStub,
+  'el-input': inputStub,
   'el-input-number': inputNumberStub,
   'el-option': optionStub,
+  'el-pagination': paginationStub,
   'el-select': selectStub,
   'el-table': tableStub,
   'el-table-column': tableColumnStub,
@@ -161,6 +191,43 @@ describe('score overview card', () => {
     expect(wrapper.text()).not.toContain('其他考试')
     expect(wrapper.text()).toContain('83.50')
     expect(wrapper.text()).not.toContain('2026 · -')
+  })
+
+  it('renders top-level statistics as a functional exam entry list', async () => {
+    vi.spyOn(http, 'get').mockResolvedValue({
+      data: {
+        items: [
+          {
+            id: 9,
+            name: '期末考试',
+            exam_type: 'final',
+            term: '2026',
+            status: 'active',
+            remark: null,
+            classes: [{ id: 1, name: '一班' }],
+            subjects: [{ id: 11, course_id: 3, course_name: '数学', full_score: '100', pass_score: '60', excellent_score: '90', exam_date: null, status: 'active', remark: null }],
+          },
+        ],
+        total: 1,
+        page: 1,
+        page_size: 20,
+      },
+    })
+
+    const wrapper = mount(StatisticsView, {
+      global: { stubs: globalStubs, directives: { loading: {} } },
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('统计分析')
+    expect(wrapper.text()).not.toContain('后续任务')
+    expect(wrapper.text()).toContain('期末考试')
+    expect(wrapper.text()).toContain('考试名称')
+
+    const statisticsButton = wrapper.findAll('button').find((button) => button.text() === '查看统计')
+    expect(statisticsButton).toBeDefined()
+    await statisticsButton?.trigger('click')
+    expect(routerMocks.push).toHaveBeenCalledWith('/exam-center/9/statistics')
   })
 
   it('renders statistics backend fields and sends backend query parameter names', async () => {
