@@ -24,7 +24,7 @@ Use contained table scrolling and sticky row actions.
 3. Wide tables with row actions should keep the `操作` column fixed to the right side of the table.
 4. Score management keeps its direct `保存` button visible; it should not be hidden inside a menu.
 5. Other pages with `操作` columns should follow the same fixed-right behavior for consistency.
-6. Data tables should gain light cell borders so wide rows are easier to scan without looking visually heavy.
+6. Data tables should gain light cell borders and calm visual emphasis so wide rows are easier to scan without looking visually heavy.
 
 ## Scope
 
@@ -67,6 +67,9 @@ Tables should use a restrained grid treatment:
 
 - Add light one-pixel cell dividers to data tables.
 - Use low-contrast border colors that sit near the existing page border palette.
+- Give table headers a slightly stronger, calm background so column labels are easier to anchor.
+- Give the first data column subtle emphasis to help users keep their place while scanning wide rows.
+- Add a light shadow and quiet background change to the row under the mouse cursor.
 - Keep row height and existing density stable.
 - Avoid heavy dark grid lines or a spreadsheet-like visual weight.
 - Keep the fixed operation column visually separated with a subtle left border or shadow so it reads as pinned while the table scrolls under it.
