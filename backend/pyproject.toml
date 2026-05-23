@@ -14,7 +14,8 @@ dependencies = [
   "python-jose[cryptography]>=3.3.0",
   "python-multipart>=0.0.12",
   "sqlalchemy>=2.0.35",
-  "uvicorn[standard]>=0.30.6"
+  "tzdata>=2026.2",
+  "uvicorn[standard]>=0.30.6",
 ]
 
 [project.optional-dependencies]

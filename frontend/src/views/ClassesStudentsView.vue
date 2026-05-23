@@ -45,6 +45,7 @@ const studentFilters = reactive({
 
 const classDialogVisible = ref(false)
 const studentDialogVisible = ref(false)
+const activeTab = ref('students')
 const classFormRef = ref<FormInstance>()
 const studentFormRef = ref<FormInstance>()
 const importResult = ref<StudentImportResult | null>(null)
@@ -398,7 +399,7 @@ onMounted(async () => {
         <span>班级管理</span>
         <span>学生管理</span>
       </div>
-      <el-tabs>
+      <el-tabs v-model="activeTab">
         <el-tab-pane label="班级管理" name="classes">
           <div class="gm-section-title">
             <h2>班级列表</h2>

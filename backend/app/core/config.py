@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     secret_key: str = "dev-secret"
     access_token_expire_days: int = 30
     app_timezone: str = "Asia/Shanghai"
-    backend_cors_origins: str = "http://localhost:5173"
+    backend_cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000"
 
     model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", env_file_encoding="utf-8")
 

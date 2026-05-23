@@ -88,6 +88,15 @@ describe('base management views', () => {
     expect(wrapper.text()).toContain('学生管理')
   })
 
+  it('opens class and student management on the student tab by default', () => {
+    const wrapper = mount(ClassesStudentsView, {
+      global: testGlobal(),
+    })
+    const view = wrapper.vm as unknown as { activeTab: string }
+
+    expect(view.activeTab).toBe('students')
+  })
+
   it('keeps class controls in the class management tab content', () => {
     const wrapper = mount(ClassesStudentsView, {
       global: testGlobal(),
@@ -119,6 +128,15 @@ describe('base management views', () => {
     expect(wrapper.text()).toContain('课程管理')
     expect(wrapper.text()).toContain('周课表')
     expect(wrapper.text()).not.toContain('课程编码')
+  })
+
+  it('opens course and schedule management on the weekly schedule tab by default', () => {
+    const wrapper = mount(CoursesScheduleView, {
+      global: testGlobal(),
+    })
+    const view = wrapper.vm as unknown as { activeTab: string }
+
+    expect(view.activeTab).toBe('schedule')
   })
 
   it('renders schedule class context and clearable class filter', () => {

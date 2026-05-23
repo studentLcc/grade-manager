@@ -32,6 +32,7 @@ const statusLabelMap = new Map(statusOptions.map((item) => [item.value, item.lab
 
 const courseDialogVisible = ref(false)
 const scheduleDialogVisible = ref(false)
+const activeTab = ref('schedule')
 
 const courseFilters = reactive({
   status: 'active',
@@ -421,7 +422,7 @@ onMounted(async () => {
         <span>课程管理</span>
         <span>周课表</span>
       </div>
-      <el-tabs>
+      <el-tabs v-model="activeTab">
         <el-tab-pane label="课程管理" name="courses">
           <div class="gm-section-title">
             <h2>课程管理</h2>

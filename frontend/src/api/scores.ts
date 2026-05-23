@@ -97,6 +97,30 @@ export interface PageResponse<T> {
   page_size: number
 }
 
+export interface ScoreRecord {
+  exam_id: number
+  exam_name: string
+  term: string | null
+  exam_status: string
+  class_id: number
+  class_name: string
+  student_id: number
+  student_no: string
+  student_name: string
+  exam_student_id: number
+  course_id: number
+  course_name: string | null
+  exam_subject_id: number
+  full_score: string
+  score: string | null
+  score_status: ScoreStatus
+  remark: string
+}
+
+export function listScoreRecords(params: Record<string, unknown>) {
+  return http.get<PageResponse<ScoreRecord>>('/scores', { params })
+}
+
 export function getScoreSheet(examId: number) {
   return http.get<ScoreSheet>(`/exams/${examId}/score-sheet`)
 }

@@ -54,34 +54,52 @@ const tableColumnStub = {
   },
 }
 
-const examPage = {
+const scorePage = {
   items: [
     {
-      id: 9,
-      name: '期中考试',
-      exam_type: 'midterm',
+      exam_id: 9,
+      exam_name: '期中考试',
       term: '2026-2027-1',
-      status: 'active',
-      remark: null,
-      classes: [{ id: 1, name: '一班' }],
-      subjects: [
-        {
-          id: 11,
-          course_id: 3,
-          course_name: '数学',
-          full_score: '100',
-          pass_score: '60',
-          excellent_score: '90',
-          exam_date: null,
-          status: 'active',
-          remark: null,
-        },
-      ],
+      exam_status: 'active',
+      class_id: 1,
+      class_name: '一班',
+      student_id: 2,
+      student_no: 'S001',
+      student_name: '张三',
+      exam_student_id: 21,
+      course_id: 3,
+      course_name: '数学',
+      exam_subject_id: 11,
+      full_score: '100.00',
+      score: '88.00',
+      score_status: 'normal',
+      remark: '进步明显',
     },
   ],
   total: 1,
   page: 1,
   page_size: 20,
+}
+
+const examPage = {
+  items: [{ id: 9, name: '期中考试' }],
+  total: 1,
+  page: 1,
+  page_size: 100,
+}
+
+const classPage = {
+  items: [{ id: 1, name: '一班' }],
+  total: 1,
+  page: 1,
+  page_size: 100,
+}
+
+const coursePage = {
+  items: [{ id: 3, course_name: '数学' }],
+  total: 1,
+  page: 1,
+  page_size: 100,
 }
 
 function mountScoreManagement() {
@@ -105,57 +123,73 @@ describe('score management view', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     routerMocks.push.mockReset()
-    vi.spyOn(http, 'get').mockResolvedValue({ data: examPage })
+    vi.spyOn(http, 'get').mockImplementation((url: string) => {
+      if (url === '/scores') return Promise.resolve({ data: scorePage })
+      if (url === '/exams') return Promise.resolve({ data: examPage })
+      if (url === '/classes') return Promise.resolve({ data: classPage })
+      if (url === '/courses') return Promise.resolve({ data: coursePage })
+      return Promise.resolve({ data: { items: [], total: 0, page: 1, page_size: 20 } })
+    })
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
-  it('renders a score-focused exam list without exam creation controls', async () => {
+  it('renders score records instead of an exam workflow list', async () => {
     const wrapper = mountScoreManagement()
     await flushPromises()
 
     expect(http.get).toHaveBeenCalledWith(
-      '/exams',
+      '/scores',
       expect.objectContaining({ params: expect.objectContaining({ status: 'active', page: 1, page_size: 20 }) }),
     )
     expect(wrapper.text()).toContain('成绩管理')
-    expect(wrapper.text()).toContain('成绩录入')
-    expect(wrapper.text()).toContain('导入成绩')
-    expect(wrapper.text()).toContain('查看统计')
-    expect(wrapper.text()).toContain('考试详情')
-    expect(wrapper.text()).toContain('考试名称')
-    expect(wrapper.text()).toContain('参与班级')
-    expect(wrapper.text()).toContain('科目')
     expect(wrapper.text()).toContain('期中考试')
+    expect(wrapper.text()).toContain('一班')
+    expect(wrapper.text()).toContain('数学')
+    expect(wrapper.text()).toContain('考试名称')
+    expect(wrapper.text()).toContain('班级')
+    expect(wrapper.text()).toContain('学生')
+    expect(wrapper.text()).toContain('学号')
+    expect(wrapper.text()).toContain('科目')
+    expect(wrapper.text()).toContain('成绩')
+    expect(wrapper.text()).toContain('状态')
+    expect(wrapper.text()).toContain('张三')
+    expect(wrapper.text()).toContain('88.00')
+    expect(wrapper.text()).toContain('正常')
+    expect(wrapper.text()).not.toContain('成绩录入')
+    expect(wrapper.text()).not.toContain('导入成绩')
+    expect(wrapper.text()).not.toContain('查看统计')
     expect(wrapper.text()).not.toContain('创建考试')
   })
 
-  it('routes score management row actions to existing exam workflows', async () => {
+  it('saves one score record through the existing exam score endpoint', async () => {
     const wrapper = mountScoreManagement()
     await flushPromises()
+    const put = vi.spyOn(http, 'put').mockResolvedValue({
+      data: { success_count: 1, failure_count: 0, failed_items: [] },
+    })
+    const view = wrapper.vm as unknown as {
+      records: Array<{ score: string; remark: string }>
+      saveRecord: (record: { score: string; remark: string }) => Promise<void>
+    }
 
-    const buttons = wrapper.findAll('button')
-    const scoreEntryButton = buttons.find((button) => button.text() === '成绩录入')
-    const importButton = buttons.find((button) => button.text() === '导入成绩')
-    const statisticsButton = buttons.find((button) => button.text() === '查看统计')
-    const detailButton = buttons.find((button) => button.text() === '考试详情')
+    view.records[0].score = '91'
+    view.records[0].remark = '稳定提升'
+    await view.saveRecord(view.records[0])
 
-    expect(scoreEntryButton).toBeDefined()
-    expect(importButton).toBeDefined()
-    expect(statisticsButton).toBeDefined()
-    expect(detailButton).toBeDefined()
-
-    await scoreEntryButton?.trigger('click')
-    await importButton?.trigger('click')
-    await statisticsButton?.trigger('click')
-    await detailButton?.trigger('click')
-
-    expect(routerMocks.push).toHaveBeenNthCalledWith(1, '/exam-center/9/scores')
-    expect(routerMocks.push).toHaveBeenNthCalledWith(2, '/exam-center/9/scores?import=1')
-    expect(routerMocks.push).toHaveBeenNthCalledWith(3, '/exam-center/9/statistics')
-    expect(routerMocks.push).toHaveBeenNthCalledWith(4, '/exam-center/9')
+    expect(put).toHaveBeenCalledWith('/exams/9/scores', {
+      items: [
+        {
+          exam_student_id: 21,
+          exam_subject_id: 11,
+          score: '91',
+          score_status: 'normal',
+          remark: '稳定提升',
+        },
+      ],
+    })
   })
 
   it('resets score management pagination when filters change', async () => {

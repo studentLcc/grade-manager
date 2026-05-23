@@ -1,14 +1,79 @@
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.models import Class, Course, ExamClass, ExamStudent, ExamSubject, Score, Student, Teacher
+from app.models import Class, Course, Exam, ExamClass, ExamStudent, ExamSubject, Score, Student, Teacher
 from app.modules.exams.service import get_active_exam_for_mutation, get_exam
 from app.modules.exams.roster_service import ensure_exam_roster
 from app.modules.scores.schemas import ScoreFailureItem, ScoreSaveItem, ScoreSaveRequest
 
 ABNORMAL_SCORE_STATUSES = {"absent", "deferred", "cheating", "exempt"}
+
+
+def list_score_records(
+    db: Session,
+    teacher: Teacher,
+    page: int,
+    page_size: int,
+    keyword: str | None = None,
+    exam_id: int | None = None,
+    class_id: int | None = None,
+    course_id: int | None = None,
+    status: str | None = None,
+    score_status: str | None = None,
+) -> tuple[list[dict[str, object]], int]:
+    score_status_expr = func.coalesce(Score.score_status, "normal")
+    query = (
+        select(ExamStudent, ExamSubject, Class, Student, Course, Score)
+        .join(Exam, Exam.id == ExamStudent.exam_id)
+        .join(ExamSubject, ExamSubject.exam_id == ExamStudent.exam_id)
+        .join(Class, Class.id == ExamStudent.class_id)
+        .join(Student, Student.id == ExamStudent.student_id)
+        .join(Course, Course.id == ExamSubject.course_id)
+        .outerjoin(
+            Score,
+            (Score.exam_student_id == ExamStudent.id)
+            & (Score.exam_subject_id == ExamSubject.id),
+        )
+        .where(
+            Exam.teacher_id == teacher.id,
+            ExamStudent.status == "active",
+            ExamSubject.status == "active",
+        )
+        .order_by(
+            Exam.created_at.desc(),
+            Exam.id.desc(),
+            Class.name,
+            Student.student_no,
+            ExamSubject.id,
+        )
+    )
+    if status is None:
+        query = query.where(Exam.status == "active")
+    else:
+        query = query.where(Exam.status == status)
+    if keyword:
+        query = query.where(
+            or_(
+                Exam.name.contains(keyword),
+                Student.student_no.contains(keyword),
+                Student.name.contains(keyword),
+                Course.course_name.contains(keyword),
+            )
+        )
+    if exam_id:
+        query = query.where(Exam.id == exam_id)
+    if class_id:
+        query = query.where(ExamStudent.class_id == class_id)
+    if course_id:
+        query = query.where(ExamSubject.course_id == course_id)
+    if score_status:
+        query = query.where(score_status_expr == score_status)
+
+    total = db.scalar(select(func.count()).select_from(query.subquery())) or 0
+    rows = db.execute(query.offset((page - 1) * page_size).limit(page_size)).all()
+    return [_serialize_score_record(*row) for row in rows], total
 
 
 def get_score_sheet(db: Session, teacher: Teacher, exam_id: int) -> dict[str, object]:
@@ -90,6 +155,36 @@ def get_score_sheet(db: Session, teacher: Teacher, exam_id: int) -> dict[str, ob
             }
             for score in scores
         ],
+    }
+
+
+def _serialize_score_record(
+    exam_student: ExamStudent,
+    exam_subject: ExamSubject,
+    class_: Class,
+    student: Student,
+    course: Course,
+    score: Score | None,
+) -> dict[str, object]:
+    exam = exam_student.exam
+    return {
+        "exam_id": exam.id,
+        "exam_name": exam.name,
+        "term": exam.term,
+        "exam_status": exam.status,
+        "class_id": class_.id,
+        "class_name": class_.name,
+        "student_id": student.id,
+        "student_no": student.student_no,
+        "student_name": student.name,
+        "exam_student_id": exam_student.id,
+        "course_id": course.id,
+        "course_name": course.course_name,
+        "exam_subject_id": exam_subject.id,
+        "full_score": exam_subject.full_score,
+        "score": score.score if score is not None else None,
+        "score_status": score.score_status if score is not None else "normal",
+        "remark": score.remark if score is not None and score.remark is not None else "",
     }
 
 

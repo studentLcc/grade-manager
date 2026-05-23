@@ -28,3 +28,12 @@ def test_settings_load_env_file_values(tmp_path):
 
 def test_backend_env_example_is_next_to_backend_project():
     assert (Path(__file__).resolve().parents[1] / ".env.example").is_file()
+
+
+def test_default_cors_origins_include_windows_dev_port():
+    settings = Settings(_env_file=None)
+
+    origins = {origin.strip() for origin in settings.backend_cors_origins.split(",")}
+
+    assert "http://127.0.0.1:3000" in origins
+    assert "http://localhost:3000" in origins

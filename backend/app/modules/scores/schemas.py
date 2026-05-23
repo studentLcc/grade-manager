@@ -36,6 +36,26 @@ class ScoreSaveResult(BaseModel):
     failed_items: list[ScoreFailureItem]
 
 
+class ScoreRecordRead(BaseModel):
+    exam_id: int
+    exam_name: str
+    term: str | None
+    exam_status: str
+    class_id: int
+    class_name: str
+    student_id: int
+    student_no: str
+    student_name: str
+    exam_student_id: int
+    course_id: int
+    course_name: str | None
+    exam_subject_id: int
+    full_score: Decimal
+    score: Decimal | None
+    score_status: str
+    remark: str
+
+
 class ScoreSheetExam(BaseModel):
     id: int
     name: str
