@@ -24,6 +24,7 @@ Use contained table scrolling and sticky row actions.
 3. Wide tables with row actions should keep the `操作` column fixed to the right side of the table.
 4. Score management keeps its direct `保存` button visible; it should not be hidden inside a menu.
 5. Other pages with `操作` columns should follow the same fixed-right behavior for consistency.
+6. Data tables should gain light cell borders so wide rows are easier to scan without looking visually heavy.
 
 ## Scope
 
@@ -60,6 +61,18 @@ For page layout:
 - Page cards should allow internal children to shrink with `min-width: 0`.
 - The app main content should not expose a document-level horizontal scrollbar due to tables.
 
+## Visual Polish
+
+Tables should use a restrained grid treatment:
+
+- Add light one-pixel cell dividers to data tables.
+- Use low-contrast border colors that sit near the existing page border palette.
+- Keep row height and existing density stable.
+- Avoid heavy dark grid lines or a spreadsheet-like visual weight.
+- Keep the fixed operation column visually separated with a subtle left border or shadow so it reads as pinned while the table scrolls under it.
+
+This polish should apply consistently to the existing management and list tables. It should not change form controls inside cells beyond the surrounding table borders.
+
 ## Affected Tables
 
 Action columns should become fixed-right in:
@@ -82,6 +95,7 @@ Tests should cover the behavior structurally:
 - Score management marks its operation column as fixed-right.
 - Other row-action tables mark their operation columns as fixed-right.
 - No page-level horizontal scrollbar is introduced when tables are wider than the viewport.
+- Wide data tables opt into the light bordered table treatment.
 
 Verification should include:
 
