@@ -6,6 +6,7 @@ import {
   Files,
   Grid,
   House,
+  Notebook,
   Search,
   Setting,
   UploadFilled,
@@ -19,7 +20,11 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
+const scoreWorkRoutePattern = /^\/exam-center\/[^/]+\/(scores|statistics)$/
+
 const activePath = computed(() => {
+  if (route.path.startsWith('/score-management')) return '/score-management'
+  if (scoreWorkRoutePattern.test(route.path)) return '/score-management'
   if (route.path.startsWith('/exam-center')) return '/exam-center'
   if (route.path.startsWith('/imports')) return '/imports'
   return route.path
@@ -30,6 +35,7 @@ const navItems = [
   { path: '/classes-students', label: '班级与学生', icon: User },
   { path: '/courses-schedule', label: '课程与课表', icon: Calendar },
   { path: '/exam-center', label: '考试中心', icon: Files },
+  { path: '/score-management', label: '成绩管理', icon: Notebook },
   { path: '/statistics', label: '统计分析', icon: DataAnalysis },
   { path: '/imports', label: '导入记录', icon: UploadFilled },
   { path: '/account', label: '账号设置', icon: Setting },

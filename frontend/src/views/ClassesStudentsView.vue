@@ -391,97 +391,99 @@ onMounted(async () => {
         <h1>班级与学生</h1>
         <p>维护基础班级、学生档案，并导入批量学生名单。</p>
       </div>
-      <div class="gm-toolbar">
-        <button class="gm-action-button" type="button" @click="openCreateClassDialog">新增班级</button>
-        <button class="gm-action-button is-primary" type="button" @click="openCreateStudentDialog">新增学生</button>
+    </div>
+
+    <section class="gm-page-card">
+      <div class="gm-tab-label-row" aria-hidden="true">
+        <span>班级管理</span>
+        <span>学生管理</span>
       </div>
-    </div>
-
-    <div class="gm-management-grid">
-      <section class="gm-page-card">
-        <div class="gm-section-title">
-          <h2>班级列表</h2>
-          <button class="gm-action-button" type="button" @click="openCreateClassDialog">新增班级</button>
-        </div>
-        <div class="gm-filter-row">
-          <el-input v-model="classFilters.keyword" placeholder="搜索班级名称" clearable />
-          <el-select v-model="classFilters.status" placeholder="状态">
-            <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-        </div>
-        <el-table v-loading="classLoading" :data="classRows" empty-text="暂无班级">
-          <el-table-column prop="name" label="班级" />
-          <el-table-column prop="grade" label="年级" width="90" />
-          <el-table-column prop="academic_year" label="学年" width="120" />
-          <el-table-column prop="status_display" label="状态" width="90" />
-          <el-table-column label="操作" width="90">
-            <template #default="{ row }">
-              <el-button text type="primary" @click="openEditClassDialog(row)">编辑</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-        <div class="gm-pagination">
-          <el-pagination
-            v-model:current-page="classFilters.page"
-            v-model:page-size="classFilters.page_size"
-            layout="prev, pager, next, sizes"
-            :total="classTotal"
-          />
-        </div>
-      </section>
-
-      <section class="gm-page-card">
-        <div class="gm-section-title">
-          <h2>学生列表</h2>
-          <div class="gm-toolbar">
-            <el-upload
-              v-model:file-list="uploadFiles"
-              :disabled="importDisabled"
-              :http-request="uploadStudents"
-              :show-file-list="false"
-              name="file"
-            >
-              <button class="gm-action-button" :disabled="importDisabled" type="button">导入学生</button>
-            </el-upload>
-            <button class="gm-action-button is-primary" type="button" @click="openCreateStudentDialog">新增学生</button>
+      <el-tabs>
+        <el-tab-pane label="班级管理" name="classes">
+          <div class="gm-section-title">
+            <h2>班级列表</h2>
+            <button class="gm-action-button" type="button" @click="openCreateClassDialog">新增班级</button>
           </div>
-        </div>
+          <div class="gm-filter-row">
+            <el-input v-model="classFilters.keyword" placeholder="搜索班级名称" clearable />
+            <el-select v-model="classFilters.status" placeholder="状态">
+              <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </div>
+          <el-table v-loading="classLoading" :data="classRows" empty-text="暂无班级">
+            <el-table-column prop="name" label="班级" />
+            <el-table-column prop="grade" label="年级" width="90" />
+            <el-table-column prop="academic_year" label="学年" width="120" />
+            <el-table-column prop="status_display" label="状态" width="90" />
+            <el-table-column label="操作" width="90">
+              <template #default="{ row }">
+                <el-button text type="primary" @click="openEditClassDialog(row)">编辑</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <div class="gm-pagination">
+            <el-pagination
+              v-model:current-page="classFilters.page"
+              v-model:page-size="classFilters.page_size"
+              layout="prev, pager, next, sizes"
+              :total="classTotal"
+            />
+          </div>
+        </el-tab-pane>
 
-        <div class="gm-filter-row gm-filter-row-wide">
-          <el-input v-model="studentFilters.keyword" placeholder="搜索学号或姓名" clearable />
-          <el-select v-model="studentFilters.status" placeholder="状态">
-            <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-          <el-select v-model="studentFilters.class_id" placeholder="所属班级" clearable>
-            <el-option v-for="item in classOptions" :key="item.id" :label="item.name" :value="item.id" />
-          </el-select>
-        </div>
+        <el-tab-pane label="学生管理" name="students">
+          <div class="gm-section-title">
+            <h2>学生列表</h2>
+            <div class="gm-toolbar">
+              <el-upload
+                v-model:file-list="uploadFiles"
+                :disabled="importDisabled"
+                :http-request="uploadStudents"
+                :show-file-list="false"
+                name="file"
+              >
+                <button class="gm-action-button" :disabled="importDisabled" type="button">导入学生</button>
+              </el-upload>
+              <button class="gm-action-button is-primary" type="button" @click="openCreateStudentDialog">新增学生</button>
+            </div>
+          </div>
 
-        <ImportResultPanel :result="importResult" />
+          <div class="gm-filter-row gm-filter-row-wide">
+            <el-input v-model="studentFilters.keyword" placeholder="搜索学号或姓名" clearable />
+            <el-select v-model="studentFilters.status" placeholder="状态">
+              <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+            <el-select v-model="studentFilters.class_id" placeholder="所属班级" clearable>
+              <el-option v-for="item in classOptions" :key="item.id" :label="item.name" :value="item.id" />
+            </el-select>
+          </div>
 
-        <el-table v-loading="studentLoading" :data="studentRows" empty-text="暂无学生">
-          <el-table-column prop="student_no" label="学号" width="120" />
-          <el-table-column prop="name" label="姓名" width="110" />
-          <el-table-column prop="class_display" label="班级" />
-          <el-table-column prop="status_display" label="状态" width="90" />
-          <el-table-column prop="remark" label="备注" />
-          <el-table-column label="操作" width="90">
-            <template #default="{ row }">
-              <el-button text type="primary" @click="openEditStudentDialog(row)">编辑</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
+          <ImportResultPanel :result="importResult" />
 
-        <div class="gm-pagination">
-          <el-pagination
-            v-model:current-page="studentFilters.page"
-            v-model:page-size="studentFilters.page_size"
-            layout="prev, pager, next, sizes"
-            :total="studentTotal"
-          />
-        </div>
-      </section>
-    </div>
+          <el-table v-loading="studentLoading" :data="studentRows" empty-text="暂无学生">
+            <el-table-column prop="student_no" label="学号" width="120" />
+            <el-table-column prop="name" label="姓名" width="110" />
+            <el-table-column prop="class_display" label="班级" />
+            <el-table-column prop="status_display" label="状态" width="90" />
+            <el-table-column prop="remark" label="备注" />
+            <el-table-column label="操作" width="90">
+              <template #default="{ row }">
+                <el-button text type="primary" @click="openEditStudentDialog(row)">编辑</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <div class="gm-pagination">
+            <el-pagination
+              v-model:current-page="studentFilters.page"
+              v-model:page-size="studentFilters.page_size"
+              layout="prev, pager, next, sizes"
+              :total="studentTotal"
+            />
+          </div>
+        </el-tab-pane>
+      </el-tabs>
+    </section>
 
     <el-dialog v-model="classDialogVisible" title="班级信息" width="520px">
       <el-form ref="classFormRef" :model="classForm" :rules="classRules" label-width="88px">

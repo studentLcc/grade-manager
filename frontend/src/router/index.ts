@@ -7,6 +7,7 @@ import ClassesStudentsView from '../views/ClassesStudentsView.vue'
 import CoursesScheduleView from '../views/CoursesScheduleView.vue'
 import ExamCenterView from '../views/ExamCenterView.vue'
 import ExamDetailView from '../views/ExamDetailView.vue'
+import ScoreManagementView from '../views/ScoreManagementView.vue'
 import ScoreEntryView from '../views/ScoreEntryView.vue'
 import ExamStatisticsView from '../views/ExamStatisticsView.vue'
 import ImportRecordsView from '../views/ImportRecordsView.vue'
@@ -29,6 +30,7 @@ const router = createRouter({
         { path: 'classes-students', component: ClassesStudentsView },
         { path: 'courses-schedule', component: CoursesScheduleView },
         { path: 'exam-center', component: ExamCenterView },
+        { path: 'score-management', component: ScoreManagementView },
         { path: 'exam-center/:id', component: ExamDetailView },
         { path: 'exam-center/:id/scores', component: ScoreEntryView },
         { path: 'exam-center/:id/statistics', component: ExamStatisticsView },

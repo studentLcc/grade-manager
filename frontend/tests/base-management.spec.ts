@@ -78,13 +78,38 @@ describe('base management views', () => {
     vi.unstubAllEnvs()
   })
 
-  it('renders class and student controls on one page', () => {
+  it('renders class and student management tabs', () => {
     const wrapper = mount(ClassesStudentsView, {
       global: testGlobal(),
     })
+
     expect(wrapper.text()).toContain('班级与学生')
+    expect(wrapper.text()).toContain('班级管理')
+    expect(wrapper.text()).toContain('学生管理')
+  })
+
+  it('keeps class controls in the class management tab content', () => {
+    const wrapper = mount(ClassesStudentsView, {
+      global: testGlobal(),
+    })
+
+    expect(wrapper.text()).toContain('班级列表')
+    expect(wrapper.text()).toContain('新增班级')
+    expect(wrapper.text()).toContain('班级')
+    expect(wrapper.text()).toContain('年级')
+    expect(wrapper.text()).toContain('学年')
+  })
+
+  it('keeps student controls and import in the student management tab content', () => {
+    const wrapper = mount(ClassesStudentsView, {
+      global: testGlobal(),
+    })
+
+    expect(wrapper.text()).toContain('学生列表')
     expect(wrapper.text()).toContain('导入学生')
     expect(wrapper.text()).toContain('新增学生')
+    expect(wrapper.text()).toContain('学号')
+    expect(wrapper.text()).toContain('姓名')
   })
 
   it('renders course and weekly schedule tabs', () => {
