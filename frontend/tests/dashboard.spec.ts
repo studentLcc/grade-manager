@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { computed, h, inject, markRaw, provide, type ComputedRef, type VNode } from 'vue'
 import { School } from '@element-plus/icons-vue'
+import ClassAverageTrend from '../src/components/dashboard/ClassAverageTrend.vue'
 import MetricCard from '../src/components/dashboard/MetricCard.vue'
+import RecentExams from '../src/components/dashboard/RecentExams.vue'
 import ScoreOverviewCard from '../src/components/dashboard/ScoreOverviewCard.vue'
 import DashboardView from '../src/views/DashboardView.vue'
 import ExamStatisticsView from '../src/views/ExamStatisticsView.vue'
@@ -36,7 +38,7 @@ beforeEach(() => {
 const buttonStub = { template: '<button><slot /></button>' }
 const emptyStub = { props: ['description'], template: '<div>{{ description }}</div>' }
 const iconStub = { template: '<span><slot /></span>' }
-const optionStub = { props: ['label'], template: '<option>{{ label }}</option>' }
+const optionStub = { props: ['label', 'value'], template: '<option :value="value">{{ label }}</option>' }
 const selectStub = {
   props: ['modelValue'],
   emits: ['update:modelValue'],
@@ -126,45 +128,160 @@ describe('score overview card', () => {
           lowest_score: '32.00',
           abnormal_count: 5,
           abnormal_distribution: { absent: 2, deferred: 1, cheating: 1, exempt: 1 },
+          normal_count: 8,
+          reference_count: 13,
           low_score_warning: 4,
           failing_count: 6,
           absent_count: 2,
           cheating_count: 1,
         },
+        classOptions: [
+          { id: 1, name: '一班' },
+          { id: 2, name: '二班' },
+        ],
+        selectedClassId: null,
+        academicYears: ['2026-2027', '2025-2026'],
+        selectedAcademicYear: '2026-2027',
       },
+      global: { stubs: globalStubs },
     })
     expect(wrapper.text()).toContain('平均分')
+    expect(wrapper.find('.gm-score-overview > .gm-section-title h2').text()).toBe('成绩概览')
+    expect(wrapper.find('.gm-academic-year-select').exists()).toBe(true)
+    expect(wrapper.find('.gm-academic-year-select').attributes('value')).toBe('2026-2027')
+    expect(wrapper.find('.gm-score-class-filter').classes()).toContain('gm-trend-class-strip')
+    expect(wrapper.find('.gm-score-class-chip').classes()).toContain('gm-trend-class-chip')
+    expect(wrapper.findAll('.gm-score-class-chip').map((chip) => chip.text())).toEqual(['全部', '一班', '二班'])
+    expect(wrapper.find('.gm-score-class-chip.is-active').text()).toBe('全部')
     expect(wrapper.text()).toContain('最高分')
     expect(wrapper.text()).toContain('最低分')
-    expect(wrapper.text()).toContain('异常状态分布')
-    expect(wrapper.text()).toContain('共 15 人')
+    expect(wrapper.text()).toContain('正常考试')
+    expect(wrapper.text()).toContain('状态人数分布')
+    expect(wrapper.text()).toContain('共 13 人次')
     expect(wrapper.text()).not.toContain('预警指标')
-    expect(wrapper.find('.gm-donut span').text()).toBe('异常合计')
-    expect(wrapper.find('.gm-donut strong').text()).toBe('15人')
-    const rows = wrapper.findAll('.gm-abnormal-item')
-    expect(rows).toHaveLength(6)
-    expect(rows[0].text()).toContain('缺考')
-    expect(rows[0].text()).toContain('2 人')
-    expect(rows[0].text()).toContain('13.33%')
-    expect(rows[1].text()).toContain('缓考')
-    expect(rows[1].text()).toContain('1 人')
-    expect(rows[1].text()).toContain('6.67%')
-    expect(rows[2].text()).toContain('作弊')
+    expect(wrapper.find('.gm-donut span').text()).toBe('正常考试')
+    expect(wrapper.find('.gm-donut strong').text()).toBe('8人')
+    expect(wrapper.find('.gm-score-visuals').exists()).toBe(true)
+    expect(wrapper.findAll('.gm-status-bar-row')).toHaveLength(7)
+    const rows = wrapper.findAll('.gm-status-info-item')
+    expect(rows).toHaveLength(7)
+    expect(rows[0].text()).toContain('正常考试')
+    expect(rows[0].text()).toContain('8 人')
+    expect(rows[1].text()).toContain('缺考')
+    expect(rows[1].text()).toContain('2 人')
+    expect(rows[2].text()).toContain('缓考')
     expect(rows[2].text()).toContain('1 人')
-    expect(rows[2].text()).toContain('6.67%')
-    expect(rows[3].text()).toContain('免考')
+    expect(rows[3].text()).toContain('作弊')
     expect(rows[3].text()).toContain('1 人')
-    expect(rows[3].text()).toContain('6.67%')
-    expect(rows[4].text()).toContain('低分预警')
-    expect(rows[4].text()).toContain('4 人')
-    expect(rows[4].text()).toContain('26.67%')
-    expect(rows[5].text()).toContain('不及格')
-    expect(rows[5].text()).toContain('6 人')
-    expect(rows[5].text()).toContain('40.00%')
+    expect(rows[4].text()).toContain('免考')
+    expect(rows[4].text()).toContain('1 人')
+    expect(rows[5].text()).toContain('低分预警')
+    expect(rows[5].text()).toContain('4 人')
+    expect(rows[6].text()).toContain('不及格')
+    expect(rows[6].text()).toContain('6 人')
+  })
+
+  it('emits selected academic year changes from the score overview title selector', async () => {
+    const wrapper = mount(ScoreOverviewCard, {
+      props: {
+        overview: null,
+        academicYears: ['2026-2027', '2025-2026'],
+        selectedAcademicYear: '2026-2027',
+      },
+      global: { stubs: globalStubs },
+    })
+
+    await wrapper.find('.gm-academic-year-select').setValue('2025-2026')
+
+    expect(wrapper.emitted('update:selectedAcademicYear')?.[0]).toEqual(['2025-2026'])
+  })
+
+  it('emits selected class changes from the score overview class chips', async () => {
+    const wrapper = mount(ScoreOverviewCard, {
+      props: {
+        overview: null,
+        classOptions: [
+          { id: 1, name: '一班' },
+          { id: 2, name: '二班' },
+        ],
+        selectedClassId: null,
+      },
+      global: { stubs: globalStubs },
+    })
+
+    await wrapper.findAll('.gm-score-class-chip')[2].trigger('click')
+
+    expect(wrapper.emitted('update:selectedClassId')?.[0]).toEqual([2])
+  })
+
+  it('renders class average data as a selected class trend instead of a long bar list', async () => {
+    const wrapper = mount(ClassAverageTrend, {
+      props: {
+        points: [
+          { exam_id: 12, exam_name: '期末考试', class_id: 1, class_name: '一班', average_score: '86.00' },
+          { exam_id: 12, exam_name: '期末考试', class_id: 2, class_name: '二班', average_score: '83.00' },
+          { exam_id: 11, exam_name: '期中考试', class_id: 1, class_name: '一班', average_score: '80.00' },
+          { exam_id: 11, exam_name: '期中考试', class_id: 2, class_name: '二班', average_score: '78.00' },
+        ],
+        academicYears: ['2026-2027', '2025-2026'],
+        selectedAcademicYear: '2026-2027',
+      },
+      global: { stubs: globalStubs },
+    })
+
+    expect(wrapper.find('.gm-trend-card > .gm-section-title h2').text()).toBe('班级均分趋势')
+    expect(wrapper.find('.gm-academic-year-select').attributes('value')).toBe('2026-2027')
+    expect(wrapper.findAll('.gm-trend-class-chip').map((chip) => chip.text())).toEqual(['一班', '二班'])
+    expect(wrapper.find('.gm-trend-selected-class').text()).toContain('一班')
+    expect(wrapper.find('.gm-trend-chart').exists()).toBe(true)
+    expect(wrapper.findAll('.gm-trend-bar')).toHaveLength(2)
+    expect(wrapper.find('.gm-trend-axis-x').exists()).toBe(true)
+    expect(wrapper.find('.gm-trend-axis-y').exists()).toBe(true)
+    expect(wrapper.findAll('.gm-trend-grid-line')).toHaveLength(3)
+    expect(wrapper.find('.gm-trend-area').exists()).toBe(true)
+    expect(wrapper.findAll('.gm-trend-axis-label').map((item) => item.text())).toEqual(['100', '50', '0'])
+    expect(wrapper.findAll('.gm-trend-x-label').map((item) => item.text())).toEqual(['期中考试', '期末考试'])
+    expect(wrapper.findAll('.gm-trend-point-label').map((item) => item.text())).toEqual(['期中考试', '期末考试'])
+    expect(wrapper.findAll('.gm-trend-row')).toHaveLength(0)
+
+    await wrapper.findAll('.gm-trend-class-chip')[1].trigger('click')
+
+    expect(wrapper.find('.gm-trend-selected-class').text()).toContain('二班')
+    expect(wrapper.findAll('.gm-trend-point-value').map((item) => item.text())).toEqual(['78.00', '83.00'])
+
+    await wrapper.find('.gm-academic-year-select').setValue('2025-2026')
+
+    expect(wrapper.emitted('update:selectedAcademicYear')?.[0]).toEqual(['2025-2026'])
+  })
+
+  it('keeps recent exams compact, single-line, and limited to the nearest few records', () => {
+    const wrapper = mount(RecentExams, {
+      props: {
+        exams: Array.from({ length: 7 }, (_, index) => ({
+          id: index + 1,
+          name: `2026-2027 学年第 ${index + 1} 次考试`,
+          term: '2026-2027-1',
+          exam_type: index === 0 ? 'school' : 'final',
+        })),
+      },
+      global: { stubs: globalStubs },
+    })
+
+    const rows = wrapper.findAll('.gm-recent-exam-row')
+    expect(rows).toHaveLength(5)
+    expect(wrapper.text()).toContain('第 1 次考试')
+    expect(wrapper.text()).toContain('第 5 次考试')
+    expect(wrapper.text()).not.toContain('第 6 次考试')
+    expect(rows[0].find('strong').text()).toContain('第 1 次考试')
+    expect(rows[0].find('span').text()).toBe('校级考试')
+    expect(rows[0].text()).not.toContain('2026-2027-1')
+    expect(rows[1].find('span').text()).toBe('其他考试')
+    expect(rows[1].text()).not.toContain('期末考试')
+    expect(rows[0].find('div').exists()).toBe(false)
   })
 
   it('renders dashboard list data from backend items wrappers', async () => {
-    vi.spyOn(http, 'get').mockImplementation((url: string) => {
+    vi.spyOn(http, 'get').mockImplementation((url: string, config?: { params?: Record<string, unknown> }) => {
       if (url === '/dashboard/summary') {
         return Promise.resolve({ data: { class_count: 1, student_count: 30, course_count: 4, recent_exam_count: 1, pending_score_count: 2 } })
       }
@@ -174,7 +291,39 @@ describe('score overview card', () => {
       if (url === '/dashboard/recent-exams') {
         return Promise.resolve({ data: { items: [{ id: 9, name: '期末统考', exam_type: 'final', term: '2026' }] } })
       }
+      if (url === '/classes') {
+        return Promise.resolve({
+          data: {
+            items: [
+              { id: 1, name: '一班', grade: '七年级', academic_year: '2026-2027', status: 'active', remark: null },
+              { id: 2, name: '上一学年班', grade: '七年级', academic_year: '2025-2026', status: 'active', remark: null },
+            ],
+            total: 2,
+            page: 1,
+            page_size: 1000,
+          },
+        })
+      }
       if (url === '/dashboard/score-overview') {
+        expect(config?.params?.academic_year).toBe('2026-2027')
+        if (config?.params?.class_id === 1) {
+          return Promise.resolve({
+            data: {
+              latest_exam: { id: 9, name: '期中考试' },
+              average_score: '83.50',
+              highest_score: '95.00',
+              lowest_score: '60.00',
+              abnormal_count: 0,
+              abnormal_distribution: {},
+              normal_count: 1,
+              reference_count: 1,
+              low_score_warning: 0,
+              failing_count: 0,
+              absent_count: 0,
+              cheating_count: 0,
+            },
+          })
+        }
         return Promise.resolve({
           data: {
             latest_exam: { id: 9, name: '期中考试' },
@@ -183,6 +332,8 @@ describe('score overview card', () => {
             lowest_score: '50.00',
             abnormal_count: 0,
             abnormal_distribution: {},
+            normal_count: 1,
+            reference_count: 1,
             low_score_warning: 0,
             failing_count: 0,
             absent_count: 0,
@@ -191,7 +342,8 @@ describe('score overview card', () => {
         })
       }
       if (url === '/dashboard/class-average-trend') {
-        return Promise.resolve({ data: { items: [{ exam_id: 9, exam_name: '期中考试', class_id: 1, class_name: null, average_score: '83.50' }] } })
+        expect(config?.params?.academic_year).toBe('2026-2027')
+        return Promise.resolve({ data: { items: [{ exam_id: 9, exam_name: '期中考试', class_id: 1, class_name: '一班', average_score: '83.50' }] } })
       }
       return Promise.resolve({ data: {} })
     })
@@ -204,9 +356,10 @@ describe('score overview card', () => {
     expect(wrapper.text()).toContain('未命名课程')
     expect(wrapper.text()).toContain('未关联班级')
     expect(wrapper.text()).toContain('期末统考')
-    expect(wrapper.text()).toContain('2026')
-    expect(wrapper.text()).toContain('期末考试')
-    expect(wrapper.text()).not.toContain('其他考试')
+    expect(wrapper.text()).toContain('其他考试')
+    expect(wrapper.find('.gm-recent-exam-row span').text()).toBe('其他考试')
+    expect(wrapper.findAll('.gm-academic-year-select')).toHaveLength(2)
+    expect(wrapper.findAll('.gm-score-class-chip').map((chip) => chip.text())).toEqual(['全部', '一班'])
     expect(wrapper.text()).toContain('83.50')
     expect(wrapper.text()).not.toContain('2026 · -')
     expect(wrapper.text()).not.toContain('快捷操作')
@@ -221,6 +374,12 @@ describe('score overview card', () => {
     expect(routerMocks.push).toHaveBeenCalledWith('/classes-students')
     await buttons[3].trigger('click')
     expect(routerMocks.push).toHaveBeenCalledWith('/statistics')
+
+    await wrapper.findAll('.gm-score-class-chip')[1].trigger('click')
+    await flushPromises()
+
+    expect(http.get).toHaveBeenCalledWith('/dashboard/score-overview', { params: { academic_year: '2026-2027', class_id: 1 } })
+    expect(wrapper.find('.gm-score-class-chip.is-active').text()).toBe('一班')
   })
 
   it('renders top-level statistics as a functional exam entry list', async () => {

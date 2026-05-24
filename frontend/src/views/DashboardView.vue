@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { DataAnalysis, Files, Notebook, Reading, School, User } from '@element-plus/icons-vue'
+import { listClasses, type ClassRecord } from '../api/classes'
 import {
   getClassAverageTrend,
   getDashboardScoreOverview,
@@ -33,27 +34,95 @@ const schedules = ref<TodayScheduleRecord[]>([])
 const exams = ref<RecentExamRecord[]>([])
 const overview = ref<ScoreOverview | null>(null)
 const trend = ref<ClassAverageTrendPoint[]>([])
+const classes = ref<ClassRecord[]>([])
+const selectedAcademicYear = ref('')
+const selectedScoreClassId = ref<number | null>(null)
+
+const academicYears = computed(() => {
+  const years = new Set(classes.value.map((classRecord) => classRecord.academic_year).filter(Boolean) as string[])
+  if (!years.size) years.add(currentAcademicYear())
+  return [...years].sort((left, right) => right.localeCompare(left))
+})
+
+const scoreClassOptions = computed(() => {
+  return classes.value
+    .filter((classRecord) => classRecord.status === 'active')
+    .filter((classRecord) => !selectedAcademicYear.value || classRecord.academic_year === selectedAcademicYear.value)
+    .map((classRecord) => ({ id: classRecord.id, name: classRecord.name || '未命名班级' }))
+})
 
 async function loadDashboard() {
   loading.value = true
   try {
-    const [summaryResponse, scheduleResponse, examResponse, overviewResponse, trendResponse] = await Promise.all([
+    const [summaryResponse, scheduleResponse, examResponse, classesResponse] = await Promise.all([
       getDashboardSummary(),
       getTodaySchedule(),
       getRecentExams(),
-      getDashboardScoreOverview(),
-      getClassAverageTrend(),
+      listClasses({ status: 'active', page: 1, page_size: 1000 }),
     ])
     summary.value = summaryResponse.data
     schedules.value = scheduleResponse.data.items
     exams.value = examResponse.data.items
-    overview.value = overviewResponse.data
-    trend.value = trendResponse.data.items
+    classes.value = classesResponse.data.items
+    syncAcademicYear()
+    syncSelectedScoreClass()
+    await loadAnalysisCards()
   } catch {
     // Global http interceptor shows the user-facing error.
   } finally {
     loading.value = false
   }
+}
+
+async function loadAnalysisCards() {
+  const params = { classId: selectedScoreClassId.value, academicYear: selectedAcademicYear.value }
+  const [overviewResponse, trendResponse] = await Promise.all([
+    getDashboardScoreOverview(params),
+    getClassAverageTrend(selectedAcademicYear.value),
+  ])
+  overview.value = overviewResponse.data
+  trend.value = trendResponse.data.items
+}
+
+async function handleScoreClassChange(classId: number | null) {
+  selectedScoreClassId.value = classId
+  try {
+    const response = await getDashboardScoreOverview({ classId, academicYear: selectedAcademicYear.value })
+    overview.value = response.data
+  } catch {
+    // Global http interceptor shows the user-facing error.
+  }
+}
+
+async function handleAcademicYearChange(academicYear: string) {
+  selectedAcademicYear.value = academicYear
+  syncSelectedScoreClass()
+  try {
+    await loadAnalysisCards()
+  } catch {
+    // Global http interceptor shows the user-facing error.
+  }
+}
+
+function syncAcademicYear() {
+  const availableYears = academicYears.value
+  if (!selectedAcademicYear.value || !availableYears.includes(selectedAcademicYear.value)) {
+    selectedAcademicYear.value = availableYears[0] || currentAcademicYear()
+  }
+}
+
+function syncSelectedScoreClass() {
+  if (selectedScoreClassId.value && !scoreClassOptions.value.some((classRecord) => classRecord.id === selectedScoreClassId.value)) {
+    selectedScoreClassId.value = null
+  }
+}
+
+function currentAcademicYear() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth() + 1
+  const startYear = month >= 9 ? year : year - 1
+  return `${startYear}-${startYear + 1}`
 }
 
 onMounted(loadDashboard)
@@ -84,8 +153,21 @@ onMounted(loadDashboard)
     <div class="gm-dashboard-grid">
       <TodaySchedule :schedules="schedules" />
       <RecentExams :exams="exams" />
-      <ScoreOverviewCard :overview="overview" />
-      <ClassAverageTrend :points="trend" />
+      <ScoreOverviewCard
+        :overview="overview"
+        :class-options="scoreClassOptions"
+        :selected-class-id="selectedScoreClassId"
+        :academic-years="academicYears"
+        :selected-academic-year="selectedAcademicYear"
+        @update:selected-class-id="handleScoreClassChange"
+        @update:selected-academic-year="handleAcademicYearChange"
+      />
+      <ClassAverageTrend
+        :points="trend"
+        :academic-years="academicYears"
+        :selected-academic-year="selectedAcademicYear"
+        @update:selected-academic-year="handleAcademicYearChange"
+      />
     </div>
   </section>
 </template>

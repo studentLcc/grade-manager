@@ -508,6 +508,15 @@ a {
   min-height: 26px;
 }
 
+.gm-academic-year-select {
+  width: 190px;
+  flex: 0 0 190px;
+}
+
+.gm-academic-year-select .el-select__wrapper {
+  min-height: 30px;
+}
+
 .gm-dashboard-analysis-card > .gm-section-title h2 {
   font-size: 17px;
   font-weight: 700;
@@ -530,9 +539,8 @@ a {
 
 .gm-score-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 160px));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
-  justify-content: start;
 }
 
 .gm-stat-list div {
@@ -599,19 +607,20 @@ a {
 
 .gm-donut {
   display: grid;
-  width: 112px;
-  height: 112px;
+  width: 124px;
+  height: 124px;
   place-items: center;
   border-radius: 50%;
 }
 
 .gm-donut > div {
   display: grid;
-  width: 70px;
-  height: 70px;
+  width: 78px;
+  height: 78px;
   place-items: center;
   border-radius: 50%;
   background: #fff;
+  text-align: center;
 }
 
 .gm-donut strong,
@@ -627,6 +636,138 @@ a {
 .gm-donut strong {
   font-size: 16px;
   line-height: 1.1;
+}
+
+.gm-analysis-visual-panel {
+  display: grid;
+  height: 190px;
+  min-height: 0;
+  border: 1px solid #e4edf2;
+  border-radius: var(--gm-radius);
+  background: #fbfdfe;
+  padding: 8px;
+}
+
+.gm-score-visuals {
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 8px;
+  align-items: stretch;
+}
+
+.gm-donut-wrap {
+  display: grid;
+  min-width: 0;
+  place-items: center;
+  border-right: 1px solid #e4edf2;
+  padding-right: 8px;
+}
+
+.gm-status-bar-area {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  gap: 8px;
+}
+
+.gm-chart-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #425967;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.gm-chart-heading span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-status-bar-list {
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  min-height: 0;
+}
+
+.gm-status-bar-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 56px;
+  gap: 8px;
+  align-items: center;
+  color: #425967;
+  font-size: 12px;
+}
+
+.gm-status-bar-row span,
+.gm-status-bar-row strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-status-bar-row strong {
+  color: var(--gm-text);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.gm-status-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8f0f4;
+}
+
+.gm-status-fill {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.gm-status-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 6px;
+}
+
+.gm-status-info-item {
+  min-width: 0;
+  border: 1px solid #e4edf2;
+  border-radius: var(--gm-radius);
+  background: #fff;
+  padding: 6px 7px;
+}
+
+.gm-status-label {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 5px;
+  overflow: hidden;
+  color: var(--gm-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-status-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+}
+
+.gm-status-info-item strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--gm-text);
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .gm-abnormal-grid {
@@ -719,7 +860,7 @@ a {
 
 .gm-trend-summary {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 96px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -757,11 +898,8 @@ a {
 }
 
 .gm-trend-chart-shell {
-  height: 150px;
-  border: 1px solid #e4edf2;
-  border-radius: var(--gm-radius);
-  background: #fbfdfe;
-  padding: 7px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  padding: 8px 8px 7px;
 }
 
 .gm-trend-chart {
@@ -796,6 +934,12 @@ a {
   fill: rgba(47, 158, 99, 0.13);
 }
 
+.gm-trend-bar {
+  fill: rgba(47, 128, 237, 0.18);
+  stroke: rgba(47, 128, 237, 0.38);
+  stroke-width: 0.4;
+}
+
 .gm-trend-line {
   fill: none;
   stroke: var(--gm-green);
@@ -812,6 +956,32 @@ a {
 
 .gm-trend-dot.is-latest {
   fill: var(--gm-green);
+}
+
+.gm-analysis-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: var(--gm-muted);
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.gm-analysis-legend i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 5px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.gm-analysis-legend .is-line {
+  background: var(--gm-green);
+}
+
+.gm-analysis-legend .is-bar {
+  background: #9fc6ff;
 }
 
 .gm-trend-point-list {

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -48,15 +48,18 @@ def recent_exams(
 
 @router.get("/score-overview", response_model=ScoreOverviewRead)
 def score_overview(
+    class_id: int | None = Query(default=None),
+    academic_year: str | None = Query(default=None),
     db: Session = Depends(get_db),
     current_teacher: Teacher = Depends(get_current_teacher),
 ) -> dict[str, object]:
-    return get_score_overview(db, current_teacher)
+    return get_score_overview(db, current_teacher, class_id=class_id, academic_year=academic_year)
 
 
 @router.get("/class-average-trend", response_model=ClassAverageTrendRead)
 def class_average_trend(
+    academic_year: str | None = Query(default=None),
     db: Session = Depends(get_db),
     current_teacher: Teacher = Depends(get_current_teacher),
 ) -> dict[str, object]:
-    return get_class_average_trend(db, current_teacher)
+    return get_class_average_trend(db, current_teacher, academic_year=academic_year)

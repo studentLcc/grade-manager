@@ -52,6 +52,8 @@ class ScoreOverviewRead(BaseModel):
     lowest_score: Decimal
     abnormal_count: int
     abnormal_distribution: dict[str, int]
+    normal_count: int
+    reference_count: int
     low_score_warning: int
     failing_count: int
     absent_count: int

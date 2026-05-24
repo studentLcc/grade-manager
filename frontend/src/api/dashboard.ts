@@ -44,6 +44,8 @@ export interface ScoreOverview {
   lowest_score: string | number | null
   abnormal_count: number
   abnormal_distribution: Record<string, number>
+  normal_count: number
+  reference_count: number
   low_score_warning: number
   failing_count: number
   absent_count: number
@@ -58,6 +60,11 @@ export interface ClassAverageTrendPoint {
   average_score: string | number | null
 }
 
+export interface DashboardScoreOverviewParams {
+  classId?: number | null
+  academicYear?: string | null
+}
+
 export function getDashboardSummary() {
   return http.get<DashboardSummary>('/dashboard/summary')
 }
@@ -70,10 +77,22 @@ export function getRecentExams() {
   return http.get<ListResponse<RecentExamRecord>>('/dashboard/recent-exams')
 }
 
-export function getDashboardScoreOverview() {
-  return http.get<ScoreOverview | null>('/dashboard/score-overview')
+function compactParams(params: Record<string, unknown>) {
+  return Object.fromEntries(Object.entries(params).filter(([, value]) => value !== '' && value !== undefined && value !== null))
 }
 
-export function getClassAverageTrend() {
-  return http.get<ListResponse<ClassAverageTrendPoint>>('/dashboard/class-average-trend')
+export function getDashboardScoreOverview(params?: DashboardScoreOverviewParams | number | null) {
+  const requestParams =
+    typeof params === 'number' || params === null
+      ? compactParams({ class_id: params })
+      : compactParams({ class_id: params?.classId, academic_year: params?.academicYear })
+  return http.get<ScoreOverview | null>(
+    '/dashboard/score-overview',
+    Object.keys(requestParams).length ? { params: requestParams } : undefined,
+  )
+}
+
+export function getClassAverageTrend(academicYear?: string | null) {
+  const params = compactParams({ academic_year: academicYear })
+  return http.get<ListResponse<ClassAverageTrendPoint>>('/dashboard/class-average-trend', Object.keys(params).length ? { params } : undefined)
 }
