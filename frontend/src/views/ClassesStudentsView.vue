@@ -411,12 +411,12 @@ onMounted(async () => {
               <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </div>
-          <el-table v-loading="classLoading" :data="classRows" empty-text="暂无班级">
+          <el-table v-loading="classLoading" border class="gm-data-table" :data="classRows" empty-text="暂无班级">
             <el-table-column prop="name" label="班级" />
             <el-table-column prop="grade" label="年级" width="90" />
             <el-table-column prop="academic_year" label="学年" width="120" />
             <el-table-column prop="status_display" label="状态" width="90" />
-            <el-table-column label="操作" width="90">
+            <el-table-column label="操作" fixed="right" width="90">
               <template #default="{ row }">
                 <el-button text type="primary" @click="openEditClassDialog(row)">编辑</el-button>
               </template>
@@ -461,13 +461,13 @@ onMounted(async () => {
 
           <ImportResultPanel :result="importResult" />
 
-          <el-table v-loading="studentLoading" :data="studentRows" empty-text="暂无学生">
+          <el-table v-loading="studentLoading" border class="gm-data-table" :data="studentRows" empty-text="暂无学生">
             <el-table-column prop="student_no" label="学号" width="120" />
             <el-table-column prop="name" label="姓名" width="110" />
             <el-table-column prop="class_display" label="班级" />
             <el-table-column prop="status_display" label="状态" width="90" />
             <el-table-column prop="remark" label="备注" />
-            <el-table-column label="操作" width="90">
+            <el-table-column label="操作" fixed="right" width="90">
               <template #default="{ row }">
                 <el-button text type="primary" @click="openEditStudentDialog(row)">编辑</el-button>
               </template>

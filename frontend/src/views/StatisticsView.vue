@@ -100,7 +100,7 @@ onMounted(loadExams)
         <el-input v-model="filters.term" placeholder="学期" clearable />
       </div>
 
-      <el-table v-loading="loading" :data="exams" empty-text="暂无可查看统计的考试">
+      <el-table v-loading="loading" border class="gm-data-table" :data="exams" empty-text="暂无可查看统计的考试">
         <el-table-column prop="name" label="考试名称" />
         <el-table-column label="类型" width="120">
           <template #default="{ row }">{{ examTypeLabel(row.exam_type) }}</template>
@@ -112,7 +112,7 @@ onMounted(loadExams)
         <el-table-column label="科目" min-width="160">
           <template #default="{ row }">{{ subjectSummary(row) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="130">
+        <el-table-column label="操作" fixed="right" width="130">
           <template #default="{ row }">
             <el-button text type="primary" @click="router.push(`/exam-center/${row.id}/statistics`)">查看统计</el-button>
           </template>

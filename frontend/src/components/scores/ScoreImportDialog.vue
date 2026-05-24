@@ -121,7 +121,7 @@ watch(
       <RouterLink v-if="result.batch_id" class="gm-import-link" :to="`/imports/${result.batch_id}`">查看导入详情</RouterLink>
     </section>
 
-    <el-table v-if="errors.length" :data="errors" empty-text="暂无错误">
+    <el-table v-if="errors.length" border class="gm-data-table" :data="errors" empty-text="暂无错误">
       <el-table-column prop="row_number" label="行号" width="90" />
       <el-table-column prop="field" label="字段" width="120" />
       <el-table-column prop="raw_value" label="原始值" width="140" />

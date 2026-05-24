@@ -237,7 +237,7 @@ onMounted(() => {
       </section>
       <section class="gm-page-card">
         <h2>分数段</h2>
-        <el-table :data="segments" empty-text="暂无分段数据">
+        <el-table border class="gm-data-table" :data="segments" empty-text="暂无分段数据">
           <el-table-column prop="label" label="分段" />
           <el-table-column prop="start" label="起始分" width="100" />
           <el-table-column prop="end" label="结束分" width="100" />
@@ -248,7 +248,7 @@ onMounted(() => {
 
     <section class="gm-page-card">
       <h2>排名</h2>
-      <el-table :data="rankings" empty-text="暂无排名数据">
+      <el-table border class="gm-data-table" :data="rankings" empty-text="暂无排名数据">
         <el-table-column prop="rank" label="排名" width="80" />
         <el-table-column prop="name" label="学生" />
         <el-table-column prop="student_no" label="学号" />
@@ -260,7 +260,7 @@ onMounted(() => {
     <div class="gm-stats-grid">
       <section class="gm-page-card">
         <h2>缺考名单</h2>
-        <el-table :data="summary.abnormal_lists?.absent || []" empty-text="暂无缺考记录">
+        <el-table border class="gm-data-table" :data="summary.abnormal_lists?.absent || []" empty-text="暂无缺考记录">
           <el-table-column prop="name" label="学生" />
           <el-table-column prop="student_no" label="学号" />
           <el-table-column prop="class_name" label="班级" />
@@ -269,7 +269,7 @@ onMounted(() => {
       </section>
       <section class="gm-page-card">
         <h2>缓考名单</h2>
-        <el-table :data="summary.abnormal_lists?.deferred || []" empty-text="暂无缓考记录">
+        <el-table border class="gm-data-table" :data="summary.abnormal_lists?.deferred || []" empty-text="暂无缓考记录">
           <el-table-column prop="name" label="学生" />
           <el-table-column prop="student_no" label="学号" />
           <el-table-column prop="class_name" label="班级" />
@@ -278,7 +278,7 @@ onMounted(() => {
       </section>
       <section class="gm-page-card">
         <h2>作弊名单</h2>
-        <el-table :data="summary.abnormal_lists?.cheating || []" empty-text="暂无作弊记录">
+        <el-table border class="gm-data-table" :data="summary.abnormal_lists?.cheating || []" empty-text="暂无作弊记录">
           <el-table-column prop="name" label="学生" />
           <el-table-column prop="student_no" label="学号" />
           <el-table-column prop="class_name" label="班级" />
@@ -287,7 +287,7 @@ onMounted(() => {
       </section>
       <section class="gm-page-card">
         <h2>免考名单</h2>
-        <el-table :data="summary.abnormal_lists?.exempt || []" empty-text="暂无免考记录">
+        <el-table border class="gm-data-table" :data="summary.abnormal_lists?.exempt || []" empty-text="暂无免考记录">
           <el-table-column prop="name" label="学生" />
           <el-table-column prop="student_no" label="学号" />
           <el-table-column prop="class_name" label="班级" />
@@ -298,7 +298,7 @@ onMounted(() => {
 
     <section class="gm-page-card">
       <h2>缺失成绩名单</h2>
-      <el-table :data="summary.missing_score_list || []" empty-text="暂无缺失成绩">
+      <el-table border class="gm-data-table" :data="summary.missing_score_list || []" empty-text="暂无缺失成绩">
         <el-table-column prop="name" label="学生" />
         <el-table-column prop="student_no" label="学号" />
         <el-table-column prop="class_name" label="班级" />

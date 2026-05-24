@@ -98,7 +98,7 @@ watch(examId, loadExam, { immediate: true })
 
     <section class="gm-page-card">
       <h2>考试科目</h2>
-      <el-table :data="exam?.subjects || []" empty-text="暂无科目">
+      <el-table border class="gm-data-table" :data="exam?.subjects || []" empty-text="暂无科目">
         <el-table-column prop="course_name" label="科目" />
         <el-table-column prop="full_score" label="满分" width="100" />
         <el-table-column prop="pass_score" label="及格分" width="100" />

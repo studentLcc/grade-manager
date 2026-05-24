@@ -433,11 +433,11 @@ onMounted(async () => {
               <el-button type="primary" @click="openCreateCourseDialog">新增课程</el-button>
             </div>
           </div>
-          <el-table v-loading="courseLoading" :data="courseRows" empty-text="暂无课程">
+          <el-table v-loading="courseLoading" border class="gm-data-table" :data="courseRows" empty-text="暂无课程">
             <el-table-column prop="course_name" label="课程名称" />
             <el-table-column prop="status_display" label="状态" width="90" />
             <el-table-column prop="remark" label="备注" />
-            <el-table-column label="操作" width="90">
+            <el-table-column label="操作" fixed="right" width="90">
               <template #default="{ row }">
                 <el-button text type="primary" @click="openEditCourseDialog(row)">编辑</el-button>
               </template>
@@ -466,7 +466,7 @@ onMounted(async () => {
               <el-button type="primary" @click="openCreateScheduleDialog">新增课表</el-button>
             </div>
           </div>
-          <el-table v-loading="scheduleLoading" :data="scheduleRows" empty-text="暂无课表">
+          <el-table v-loading="scheduleLoading" border class="gm-data-table" :data="scheduleRows" empty-text="暂无课表">
             <el-table-column prop="class_display" label="班级" />
             <el-table-column prop="weekday_display" label="星期" width="90" />
             <el-table-column prop="period_no" label="节次" width="90" />
@@ -476,7 +476,7 @@ onMounted(async () => {
             <el-table-column prop="location" label="地点" />
             <el-table-column prop="status_display" label="状态" width="90" />
             <el-table-column prop="remark" label="备注" />
-            <el-table-column label="操作" width="90">
+            <el-table-column label="操作" fixed="right" width="90">
               <template #default="{ row }">
                 <el-button text type="primary" @click="openEditScheduleDialog(row)">编辑</el-button>
               </template>

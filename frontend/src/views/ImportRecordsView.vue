@@ -130,7 +130,7 @@ onMounted(loadRecords)
         </el-select>
       </div>
 
-      <el-table v-loading="loading" :data="displayRecords" empty-text="暂无导入记录">
+      <el-table v-loading="loading" border class="gm-data-table" :data="displayRecords" empty-text="暂无导入记录">
         <el-table-column label="导入类型" width="120">
           <template #default="{ row }">{{ row.import_type_display }}</template>
         </el-table-column>
@@ -146,7 +146,7 @@ onMounted(loadRecords)
         <el-table-column label="导入时间" min-width="170">
           <template #default="{ row }">{{ row.import_time_display }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="100">
+        <el-table-column label="操作" fixed="right" width="100">
           <template #default="{ row }">
             <el-button text type="primary" @click="router.push(`/imports/${row.id}`)">详情</el-button>
           </template>

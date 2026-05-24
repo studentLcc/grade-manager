@@ -233,7 +233,7 @@ onMounted(async () => {
         </el-select>
       </div>
 
-      <el-table v-loading="loading" :data="records" empty-text="暂无成绩">
+      <el-table v-loading="loading" border class="gm-data-table" :data="records" empty-text="暂无成绩">
         <el-table-column prop="exam_name" label="考试名称" min-width="140" />
         <el-table-column prop="term" label="学期" width="130" />
         <el-table-column prop="class_name" label="班级" width="110" />
@@ -264,7 +264,7 @@ onMounted(async () => {
             {{ examStatusLabel(row.exam_status) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="100">
+        <el-table-column label="操作" fixed="right" width="100">
           <template #default="{ row }">
             <el-button text type="primary" :loading="row.saving" :disabled="row.exam_status !== 'active'" @click="saveRecord(row)">保存</el-button>
           </template>

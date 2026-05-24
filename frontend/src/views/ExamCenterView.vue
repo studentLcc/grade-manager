@@ -121,7 +121,7 @@ onMounted(loadExams)
         </el-select>
       </div>
 
-      <el-table v-loading="loading" :data="exams" empty-text="暂无考试">
+      <el-table v-loading="loading" border class="gm-data-table" :data="exams" empty-text="暂无考试">
         <el-table-column prop="name" label="考试名称" />
         <el-table-column label="类型" width="120">
           <template #default="{ row }">
@@ -144,7 +144,7 @@ onMounted(loadExams)
             {{ subjectNames(row) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="260">
+        <el-table-column label="操作" fixed="right" width="260">
           <template #default="{ row }">
             <el-button text type="primary" @click="router.push(`/exam-center/${row.id}`)">详情</el-button>
             <el-button text type="primary" @click="router.push(`/exam-center/${row.id}/scores`)">成绩录入</el-button>

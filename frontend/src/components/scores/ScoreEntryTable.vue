@@ -187,7 +187,7 @@ watch(
       {{ visibleStudents.map((student) => `${student.student_no} ${student.name}`).join(' ') }}
       {{ visibleSubjects.map((subject) => subject.course_name || '未命名科目').join(' ') }}
     </span>
-    <el-table :data="visibleStudents" empty-text="暂无考试学生">
+    <el-table border class="gm-data-table" :data="visibleStudents" empty-text="暂无考试学生">
       <el-table-column prop="student_no" label="学号" width="110" />
       <el-table-column prop="name" label="学生" width="110" />
       <el-table-column v-for="subject in visibleSubjects" :key="subject.exam_subject_id" :label="subject.course_name || '未命名科目'" min-width="210">
