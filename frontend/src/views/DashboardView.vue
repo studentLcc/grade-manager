@@ -66,14 +66,19 @@ onMounted(loadDashboard)
         <h1>工作台</h1>
         <p>快速查看今日课程、近期考试和成绩处理概况。</p>
       </div>
-      <el-button type="primary" @click="router.push('/exam-center')">创建考试</el-button>
+      <div class="gm-header-actions">
+        <el-button type="primary" :icon="Files" @click="router.push('/exam-center')">创建考试</el-button>
+        <el-button :icon="User" @click="router.push('/classes-students')">导入学生</el-button>
+        <el-button :icon="Notebook" @click="router.push('/exam-center')">录入成绩</el-button>
+        <el-button :icon="DataAnalysis" @click="router.push('/statistics')">查看统计</el-button>
+      </div>
     </div>
 
     <div class="gm-metrics">
-      <MetricCard label="班级数" :value="summary.class_count" tone="teal" :icon="School" />
-      <MetricCard label="学生数" :value="summary.student_count" tone="blue" :icon="User" />
-      <MetricCard label="课程数" :value="summary.course_count" tone="indigo" :icon="Reading" />
-      <MetricCard label="待录入成绩" :value="summary.pending_score_count" tone="amber" :icon="Notebook" />
+      <MetricCard label="班级数" :value="summary.class_count" unit="个" tone="teal" :icon="School" />
+      <MetricCard label="学生数" :value="summary.student_count" unit="人" tone="blue" :icon="User" />
+      <MetricCard label="课程数" :value="summary.course_count" unit="门" tone="indigo" :icon="Reading" />
+      <MetricCard label="待录入成绩" :value="summary.pending_score_count" unit="份" tone="amber" :icon="Notebook" />
     </div>
 
     <div class="gm-dashboard-grid">
@@ -82,17 +87,5 @@ onMounted(loadDashboard)
       <ScoreOverviewCard :overview="overview" />
       <ClassAverageTrend :points="trend" />
     </div>
-
-    <section class="gm-page-card">
-      <div class="gm-section-title">
-        <h2>快捷操作</h2>
-      </div>
-      <div class="gm-quick-actions">
-        <el-button type="primary" :icon="Files" @click="router.push('/exam-center')">创建考试</el-button>
-        <el-button :icon="User" @click="router.push('/classes-students')">导入学生</el-button>
-        <el-button :icon="Notebook" @click="router.push('/exam-center')">录入成绩</el-button>
-        <el-button :icon="DataAnalysis" @click="router.push('/statistics')">查看统计</el-button>
-      </div>
-    </section>
   </section>
 </template>

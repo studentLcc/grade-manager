@@ -4,6 +4,7 @@ import type { Component } from 'vue'
 defineProps<{
   label: string
   value: string | number
+  unit?: string
   tone: 'teal' | 'blue' | 'indigo' | 'amber' | 'purple' | 'green'
   icon: Component
 }>()
@@ -14,9 +15,12 @@ defineProps<{
     <div class="gm-metric-icon">
       <el-icon><component :is="icon" /></el-icon>
     </div>
-    <div>
-      <span>{{ label }}</span>
-      <strong>{{ value }}</strong>
+    <div class="gm-metric-body">
+      <span class="gm-metric-label">{{ label }}</span>
+      <div class="gm-metric-number">
+        <strong class="gm-metric-value">{{ value }}</strong>
+        <span v-if="unit" class="gm-metric-unit">{{ unit }}</span>
+      </div>
     </div>
   </article>
 </template>

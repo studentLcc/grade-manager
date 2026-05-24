@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
-import { computed, h, inject, provide, type ComputedRef, type VNode } from 'vue'
+import { computed, h, inject, markRaw, provide, type ComputedRef, type VNode } from 'vue'
+import { School } from '@element-plus/icons-vue'
+import MetricCard from '../src/components/dashboard/MetricCard.vue'
 import ScoreOverviewCard from '../src/components/dashboard/ScoreOverviewCard.vue'
 import DashboardView from '../src/views/DashboardView.vue'
 import ExamStatisticsView from '../src/views/ExamStatisticsView.vue'
@@ -97,6 +99,23 @@ function deferred<T>() {
 }
 
 describe('score overview card', () => {
+  it('separates metric labels, values, and units for dashboard summary cards', () => {
+    const wrapper = mount(MetricCard, {
+      props: {
+        label: '班级数',
+        value: 12,
+        unit: '个',
+        tone: 'teal',
+        icon: markRaw(School),
+      },
+      global: { stubs: globalStubs },
+    })
+
+    expect(wrapper.find('.gm-metric-label').text()).toBe('班级数')
+    expect(wrapper.find('.gm-metric-value').text()).toBe('12')
+    expect(wrapper.find('.gm-metric-unit').text()).toBe('个')
+  })
+
   it('renders required score overview metrics and abnormal distribution labels', () => {
     const wrapper = mount(ScoreOverviewCard, {
       props: {
@@ -118,31 +137,30 @@ describe('score overview card', () => {
     expect(wrapper.text()).toContain('最高分')
     expect(wrapper.text()).toContain('最低分')
     expect(wrapper.text()).toContain('异常状态分布')
-    expect(wrapper.text()).toContain('预警指标')
-    expect(wrapper.find('.gm-donut strong').text()).toBe('5')
-    const warningRows = wrapper.findAll('.gm-indicator-list div')
-    expect(warningRows).toHaveLength(2)
-    expect(warningRows[0].text()).toContain('低分预警')
-    expect(warningRows[0].text()).toContain('4 人')
-    expect(warningRows[0].text()).not.toContain('%')
-    expect(warningRows[1].text()).toContain('不及格')
-    expect(warningRows[1].text()).toContain('6 人')
-    expect(warningRows[1].text()).not.toContain('%')
-    const rows = wrapper.findAll('.gm-distribution-row')
-    expect(rows).toHaveLength(4)
+    expect(wrapper.text()).toContain('共 15 人')
+    expect(wrapper.text()).not.toContain('预警指标')
+    expect(wrapper.find('.gm-donut span').text()).toBe('异常合计')
+    expect(wrapper.find('.gm-donut strong').text()).toBe('15人')
+    const rows = wrapper.findAll('.gm-abnormal-item')
+    expect(rows).toHaveLength(6)
     expect(rows[0].text()).toContain('缺考')
     expect(rows[0].text()).toContain('2 人')
-    expect(rows[0].text()).toContain('40.00%')
+    expect(rows[0].text()).toContain('13.33%')
     expect(rows[1].text()).toContain('缓考')
     expect(rows[1].text()).toContain('1 人')
-    expect(rows[1].text()).toContain('20.00%')
+    expect(rows[1].text()).toContain('6.67%')
     expect(rows[2].text()).toContain('作弊')
     expect(rows[2].text()).toContain('1 人')
-    expect(rows[2].text()).toContain('20.00%')
+    expect(rows[2].text()).toContain('6.67%')
     expect(rows[3].text()).toContain('免考')
     expect(rows[3].text()).toContain('1 人')
-    expect(rows[3].text()).toContain('20.00%')
-    expect(wrapper.text()).not.toContain('13')
+    expect(rows[3].text()).toContain('6.67%')
+    expect(rows[4].text()).toContain('低分预警')
+    expect(rows[4].text()).toContain('4 人')
+    expect(rows[4].text()).toContain('26.67%')
+    expect(rows[5].text()).toContain('不及格')
+    expect(rows[5].text()).toContain('6 人')
+    expect(rows[5].text()).toContain('40.00%')
   })
 
   it('renders dashboard list data from backend items wrappers', async () => {
@@ -191,6 +209,18 @@ describe('score overview card', () => {
     expect(wrapper.text()).not.toContain('其他考试')
     expect(wrapper.text()).toContain('83.50')
     expect(wrapper.text()).not.toContain('2026 · -')
+    expect(wrapper.text()).not.toContain('快捷操作')
+
+    const headerActions = wrapper.find('.gm-header-actions')
+    expect(headerActions.exists()).toBe(true)
+    const buttons = headerActions.findAll('button')
+    expect(buttons.map((button) => button.text())).toEqual(['创建考试', '导入学生', '录入成绩', '查看统计'])
+    expect(wrapper.findAll('.gm-metric-unit').map((unit) => unit.text())).toEqual(['个', '人', '门', '份'])
+
+    await buttons[1].trigger('click')
+    expect(routerMocks.push).toHaveBeenCalledWith('/classes-students')
+    await buttons[3].trigger('click')
+    expect(routerMocks.push).toHaveBeenCalledWith('/statistics')
   })
 
   it('renders top-level statistics as a functional exam entry list', async () => {

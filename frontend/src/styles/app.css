@@ -192,6 +192,18 @@ a {
   font-size: 13px;
 }
 
+.gm-header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.gm-header-actions .el-button + .el-button {
+  margin-left: 0;
+}
+
 .gm-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -298,8 +310,10 @@ a {
 }
 
 .gm-metric-card {
-  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-columns: 38px minmax(0, 1fr);
   align-items: center;
+  gap: 11px;
+  min-height: 66px;
 }
 
 .gm-metric-icon {
@@ -340,6 +354,36 @@ a {
   background: #e3f5ea;
 }
 
+.gm-metric-body {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.gm-metric-label {
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.gm-metric-number {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  gap: 4px;
+}
+
+.gm-card .gm-metric-value {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.gm-card .gm-metric-unit {
+  color: var(--gm-muted);
+  font-size: 12px;
+}
+
 .gm-dashboard-list {
   min-height: 230px;
 }
@@ -371,12 +415,6 @@ a {
   margin-top: 2px;
   color: var(--gm-muted);
   font-size: 12px;
-}
-
-.gm-quick-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
 }
 
 .gm-score-overview {
@@ -413,34 +451,60 @@ a {
 }
 
 .gm-abnormal-panel {
+  display: grid;
+  gap: 10px;
   border-top: 1px solid var(--gm-border);
   padding-top: 10px;
 }
 
 .gm-abnormal-panel h3 {
-  margin: 0 0 10px;
+  margin: 0;
   font-size: 15px;
+}
+
+.gm-abnormal-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.gm-abnormal-summary {
+  border: 1px solid #e4edf2;
+  border-radius: 999px;
+  background: #f8fbfc;
+  padding: 3px 9px;
+  color: var(--gm-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.gm-abnormal-summary strong {
+  color: #425967;
+  font-size: inherit;
+  font-weight: 700;
 }
 
 .gm-abnormal-content {
   display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
+  grid-template-columns: 118px minmax(0, 1fr);
   gap: 14px;
   align-items: center;
 }
 
 .gm-donut {
   display: grid;
-  width: 118px;
-  height: 118px;
+  width: 108px;
+  height: 108px;
   place-items: center;
   border-radius: 50%;
 }
 
 .gm-donut > div {
   display: grid;
-  width: 76px;
-  height: 76px;
+  width: 70px;
+  height: 70px;
   place-items: center;
   border-radius: 50%;
   background: #fff;
@@ -456,39 +520,71 @@ a {
   font-size: 12px;
 }
 
-.gm-distribution-list,
-.gm-indicator-list {
-  display: grid;
-  gap: 7px;
+.gm-donut strong {
+  font-size: 18px;
+  line-height: 1.1;
 }
 
-.gm-distribution-row,
-.gm-indicator-list div,
-.gm-trend-row {
+.gm-abnormal-grid {
   display: grid;
-  grid-template-columns: minmax(80px, 1fr) 70px 60px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  align-items: center;
 }
 
-.gm-distribution-row span,
-.gm-distribution-row small,
-.gm-indicator-list span,
-.gm-trend-row span {
+.gm-abnormal-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 8px;
+  align-items: baseline;
+  border: 1px solid #e4edf2;
+  border-radius: var(--gm-radius);
+  background: #fbfdfe;
+  padding: 8px 9px;
+}
+
+.gm-abnormal-name {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
   color: var(--gm-muted);
   font-size: 13px;
 }
 
-.gm-indicator-list {
-  margin-top: 10px;
+.gm-abnormal-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
 }
 
-.gm-indicator-list div {
-  grid-template-columns: minmax(80px, 1fr) 70px;
+.gm-abnormal-item strong {
+  color: var(--gm-text);
+  font-size: 16px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.gm-abnormal-item small {
+  grid-column: 1 / -1;
+  color: var(--gm-muted);
+  font-size: 12px;
+  text-align: right;
+}
+
+.gm-trend-row {
+  display: grid;
+  gap: 8px;
+  align-items: center;
 }
 
 .gm-trend-row {
   grid-template-columns: 120px minmax(0, 1fr) 70px;
+}
+
+.gm-trend-row span {
+  color: var(--gm-muted);
+  font-size: 13px;
 }
 
 .gm-trend-track {
