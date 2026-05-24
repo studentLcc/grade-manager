@@ -5,12 +5,17 @@ import ClassesStudentsView from '../src/views/ClassesStudentsView.vue'
 import CoursesScheduleView from '../src/views/CoursesScheduleView.vue'
 import ImportResultPanel from '../src/components/imports/ImportResultPanel.vue'
 import { http } from '../src/api/http'
+import { ElMessage } from 'element-plus'
 
 const mocks = vi.hoisted(() => ({
   emptyPage: { items: [], total: 0, page: 1, page_size: 20 },
 }))
 
 const tableSlotStub = { template: '<div><slot /></div>' }
+const uploadStub = {
+  props: ['disabled'],
+  template: '<div class="upload-stub" :data-disabled="String(Boolean(disabled))"><slot /></div>',
+}
 const tableColumnStub = {
   props: ['label'],
   template: '<div class="table-column">{{ label }}<slot /></div>',
@@ -119,6 +124,25 @@ describe('base management views', () => {
     expect(wrapper.text()).toContain('新增学生')
     expect(wrapper.text()).toContain('学号')
     expect(wrapper.text()).toContain('姓名')
+  })
+
+  it('keeps the student import entry clickable before choosing a class', async () => {
+    const warning = vi.spyOn(ElMessage, 'warning').mockImplementation(() => ({ close: vi.fn() }))
+    const wrapper = mount(ClassesStudentsView, {
+      global: testGlobal({
+        'el-upload': uploadStub,
+      }),
+    })
+    const view = wrapper.vm as unknown as {
+      uploadStudents: (options: { file: File }) => Promise<void>
+    }
+
+    expect(wrapper.find('.upload-stub').attributes('data-disabled')).toBe('false')
+    expect(wrapper.find('button.gm-action-button').attributes('disabled')).toBeUndefined()
+
+    await view.uploadStudents({ file: new File(['student_no,name\nS001,张三'], 'students.xlsx') })
+
+    expect(warning).toHaveBeenCalledWith('请先选择所属班级')
   })
 
   it('renders course and weekly schedule tabs', () => {

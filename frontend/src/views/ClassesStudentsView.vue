@@ -88,7 +88,6 @@ let classRequestSeq = 0
 let classOptionsRequestSeq = 0
 let studentRequestSeq = 0
 
-const importDisabled = computed(() => !studentFilters.class_id)
 const classNameById = computed(() => new Map([...classOptions.value, ...classes.value].map((item) => [item.id, item.name])))
 const classRows = computed(() =>
   classes.value.map((classRecord) => ({
@@ -438,12 +437,11 @@ onMounted(async () => {
             <div class="gm-toolbar">
               <el-upload
                 v-model:file-list="uploadFiles"
-                :disabled="importDisabled"
                 :http-request="uploadStudents"
                 :show-file-list="false"
                 name="file"
               >
-                <button class="gm-action-button" :disabled="importDisabled" type="button">导入学生</button>
+                <button class="gm-action-button" type="button">导入学生</button>
               </el-upload>
               <button class="gm-action-button is-primary" type="button" @click="openCreateStudentDialog">新增学生</button>
             </div>

@@ -1,21 +1,17 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { RecentExamRecord } from '../../api/dashboard'
 
-defineProps<{
+const props = defineProps<{
   exams: RecentExamRecord[]
 }>()
 
-const examTypeLabels: Record<string, string> = {
-  school: '校级考试',
-  quiz: '单元测验',
-  midterm: '期中考试',
-  final: '期末考试',
+const MAX_VISIBLE_RECENT_EXAMS = 5
+function examTypeLabel(examType: string | null) {
+  return examType === 'school' ? '校级考试' : '其他考试'
 }
 
-function examTypeLabel(examType: string | null) {
-  if (!examType) return '未设置类型'
-  return examTypeLabels[examType] || '其他考试'
-}
+const visibleExams = computed(() => props.exams.slice(0, MAX_VISIBLE_RECENT_EXAMS))
 </script>
 
 <template>
@@ -25,11 +21,9 @@ function examTypeLabel(examType: string | null) {
     </div>
     <el-empty v-if="!exams.length" description="暂无近期考试" :image-size="64" />
     <div v-else class="gm-stack-list">
-      <article v-for="exam in exams" :key="exam.id" class="gm-list-row">
-        <div>
-          <strong>{{ exam.name }}</strong>
-          <span>{{ exam.term || '未设置学期' }} · {{ examTypeLabel(exam.exam_type) }}</span>
-        </div>
+      <article v-for="exam in visibleExams" :key="exam.id" class="gm-list-row gm-recent-exam-row">
+        <strong>{{ exam.name }}</strong>
+        <span>{{ examTypeLabel(exam.exam_type) }}</span>
       </article>
     </div>
   </section>
