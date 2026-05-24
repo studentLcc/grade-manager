@@ -592,23 +592,23 @@ a {
 
 .gm-abnormal-content {
   display: grid;
-  grid-template-columns: 134px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 10px;
   align-items: center;
 }
 
 .gm-donut {
   display: grid;
-  width: 126px;
-  height: 126px;
+  width: 112px;
+  height: 112px;
   place-items: center;
   border-radius: 50%;
 }
 
 .gm-donut > div {
   display: grid;
-  width: 78px;
-  height: 78px;
+  width: 70px;
+  height: 70px;
   place-items: center;
   border-radius: 50%;
   background: #fff;
@@ -625,55 +625,60 @@ a {
 }
 
 .gm-donut strong {
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1.1;
 }
 
 .gm-abnormal-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 6px;
 }
 
 .gm-abnormal-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 4px 8px;
+  gap: 2px 6px;
   align-items: baseline;
   border: 1px solid #e4edf2;
   border-radius: var(--gm-radius);
   background: #fbfdfe;
-  padding: 8px 9px;
+  padding: 6px 7px;
 }
 
 .gm-abnormal-name {
   display: flex;
   align-items: center;
   min-width: 0;
-  gap: 6px;
+  gap: 5px;
   color: var(--gm-muted);
-  font-size: 13px;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gm-abnormal-dot {
-  width: 7px;
-  height: 7px;
-  flex: 0 0 7px;
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
   border-radius: 50%;
 }
 
 .gm-abnormal-item strong {
   color: var(--gm-text);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .gm-abnormal-item small {
   grid-column: 1 / -1;
   color: var(--gm-muted);
-  font-size: 12px;
+  font-size: 11px;
   text-align: right;
+  white-space: nowrap;
 }
 
 .gm-trend-card {
