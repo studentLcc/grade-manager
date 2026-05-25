@@ -254,6 +254,23 @@ describe('score overview card', () => {
     expect(wrapper.emitted('update:selectedAcademicYear')?.[0]).toEqual(['2025-2026'])
   })
 
+  it('uses readable trend axis labels for academic-year prefixed exam names', () => {
+    const wrapper = mount(ClassAverageTrend, {
+      props: {
+        points: [
+          { exam_id: 14, exam_name: '2026-2027 学年综合诊断', class_id: 1, class_name: '一班', average_score: '86.00' },
+          { exam_id: 13, exam_name: '2026-2027 学年期末考试', class_id: 1, class_name: '一班', average_score: '83.00' },
+          { exam_id: 12, exam_name: '2026-2027 学年期中考试', class_id: 1, class_name: '一班', average_score: '80.00' },
+        ],
+        academicYears: ['2026-2027'],
+        selectedAcademicYear: '2026-2027',
+      },
+      global: { stubs: globalStubs },
+    })
+
+    expect(wrapper.findAll('.gm-trend-x-label').map((item) => item.text())).toEqual(['期中考试', '期末考试', '综合诊断'])
+  })
+
   it('keeps recent exams compact, single-line, and limited to the nearest few records', () => {
     const wrapper = mount(RecentExams, {
       props: {
@@ -292,6 +309,7 @@ describe('score overview card', () => {
         return Promise.resolve({ data: { items: [{ id: 9, name: '期末统考', exam_type: 'final', term: '2026' }] } })
       }
       if (url === '/classes') {
+        expect(config?.params).toMatchObject({ status: 'active', page: 1, page_size: 100 })
         return Promise.resolve({
           data: {
             items: [
@@ -300,7 +318,7 @@ describe('score overview card', () => {
             ],
             total: 2,
             page: 1,
-            page_size: 1000,
+            page_size: 100,
           },
         })
       }
@@ -382,6 +400,83 @@ describe('score overview card', () => {
     expect(wrapper.find('.gm-score-class-chip.is-active').text()).toBe('一班')
   })
 
+  it('keeps score overview and class trend academic year filters independent', async () => {
+    const get = vi.spyOn(http, 'get').mockImplementation((url: string, config?: { params?: Record<string, unknown> }) => {
+      if (url === '/dashboard/summary') {
+        return Promise.resolve({ data: { class_count: 2, student_count: 60, course_count: 4, recent_exam_count: 2, pending_score_count: 0 } })
+      }
+      if (url === '/dashboard/today-schedule') {
+        return Promise.resolve({ data: { items: [] } })
+      }
+      if (url === '/dashboard/recent-exams') {
+        return Promise.resolve({ data: { items: [] } })
+      }
+      if (url === '/classes') {
+        return Promise.resolve({
+          data: {
+            items: [
+              { id: 1, name: '一班', grade: '七年级', academic_year: '2026-2027', status: 'active', remark: null },
+              { id: 2, name: '往届一班', grade: '七年级', academic_year: '2025-2026', status: 'active', remark: null },
+            ],
+            total: 2,
+            page: 1,
+            page_size: 100,
+          },
+        })
+      }
+      if (url === '/dashboard/score-overview') {
+        return Promise.resolve({
+          data: {
+            latest_exam: { id: 9, name: '期中考试' },
+            average_score: '80.00',
+            highest_score: '99.00',
+            lowest_score: '50.00',
+            abnormal_count: 0,
+            abnormal_distribution: {},
+            normal_count: 1,
+            reference_count: 1,
+            low_score_warning: 0,
+            failing_count: 0,
+            absent_count: 0,
+            cheating_count: 0,
+          },
+        })
+      }
+      if (url === '/dashboard/class-average-trend') {
+        const academicYear = config?.params?.academic_year
+        return Promise.resolve({
+          data: {
+            items: [
+              {
+                exam_id: academicYear === '2025-2026' ? 8 : 9,
+                exam_name: academicYear === '2025-2026' ? '往届期中考试' : '期中考试',
+                class_id: academicYear === '2025-2026' ? 2 : 1,
+                class_name: academicYear === '2025-2026' ? '往届一班' : '一班',
+                average_score: academicYear === '2025-2026' ? '76.00' : '83.50',
+              },
+            ],
+          },
+        })
+      }
+      return Promise.resolve({ data: {} })
+    })
+
+    const wrapper = mount(DashboardView, {
+      global: { stubs: globalStubs, directives: { loading: {} } },
+    })
+    await flushPromises()
+    get.mockClear()
+
+    await wrapper.findAll('.gm-academic-year-select')[1].setValue('2025-2026')
+    await flushPromises()
+
+    expect(get).toHaveBeenCalledWith('/dashboard/class-average-trend', { params: { academic_year: '2025-2026' } })
+    expect(get).not.toHaveBeenCalledWith('/dashboard/score-overview', expect.anything())
+    expect(wrapper.findAll('.gm-academic-year-select')[0].attributes('value')).toBe('2026-2027')
+    expect(wrapper.findAll('.gm-academic-year-select')[1].attributes('value')).toBe('2025-2026')
+    expect(wrapper.text()).toContain('往届一班')
+  })
+
   it('renders top-level statistics as a functional exam entry list', async () => {
     vi.spyOn(http, 'get').mockResolvedValue({
       data: {
@@ -419,7 +514,7 @@ describe('score overview card', () => {
     expect(routerMocks.push).toHaveBeenCalledWith('/exam-center/9/statistics')
   })
 
-  it('renders statistics backend fields and sends backend query parameter names', async () => {
+  it('organizes exam statistics into focused sections and loads detail tables on demand', async () => {
     const get = vi.spyOn(http, 'get').mockImplementation((url: string, config?: { params?: Record<string, unknown> }) => {
       if (url === '/exams/9') {
         return Promise.resolve({
@@ -459,12 +554,30 @@ describe('score overview card', () => {
         expect(config?.params).not.toHaveProperty('ranking_type')
         expect(config?.params).not.toHaveProperty('page')
         expect(config?.params).not.toHaveProperty('page_size')
-        return Promise.resolve({ data: { items: [{ rank: 1, exam_student_id: 21, student_id: 1, student_no: 'S001', name: '张三', class_id: 1, class_name: '一班', score: '99.00' }], total: 1, page: 1, page_size: 50 } })
+        return Promise.resolve({
+          data: {
+            exam: { id: 9, name: '期中考试' },
+            included_statuses: ['normal'],
+            rank_type: 'total',
+            exam_subject_id: null,
+            class_id: null,
+            items: [{ rank: 1, exam_student_id: 21, student_id: 1, student_no: 'S001', name: '张三', class_id: 1, class_name: '一班', score: '99.00' }],
+          },
+        })
       }
       if (url === '/statistics/exams/9/segments') {
         expect(config?.params).toMatchObject({ type: 'total', step: 10 })
         expect(config?.params).not.toHaveProperty('segment_type')
-        return Promise.resolve({ data: { items: [{ label: '90-100', start: '90.00', end: '100.00', count: 1 }], total: 1, page: 1, page_size: 50 } })
+        return Promise.resolve({
+          data: {
+            exam: { id: 9, name: '期中考试' },
+            included_statuses: ['normal'],
+            type: 'total',
+            exam_subject_id: null,
+            step: 10,
+            items: [{ label: '90-100', start: '90.00', end: '100.00', count: 1 }],
+          },
+        })
       }
       return Promise.resolve({ data: {} })
     })
@@ -474,16 +587,41 @@ describe('score overview card', () => {
     })
     await flushPromises()
 
+    expect(get).toHaveBeenCalledWith('/statistics/exams/9/summary', expect.objectContaining({ params: { included_statuses: 'normal' } }))
+    expect(get).not.toHaveBeenCalledWith('/statistics/exams/9/rankings', expect.anything())
+    expect(get).not.toHaveBeenCalledWith('/statistics/exams/9/segments', expect.anything())
+    expect(wrapper.find('.gm-stats-tabs').exists()).toBe(true)
+    expect(wrapper.find('.gm-overview-section').exists()).toBe(true)
+    expect(wrapper.find('.gm-ranking-section').exists()).toBe(false)
+    expect(wrapper.find('.gm-segment-section').exists()).toBe(false)
+    expect(wrapper.find('.gm-exception-section').exists()).toBe(false)
+    expect(wrapper.text()).toContain('一班')
+    expect(wrapper.text()).toContain('数学')
+
+    await wrapper.findAll('.gm-stats-tab')[1].trigger('click')
+    await flushPromises()
+
     expect(get).toHaveBeenCalledWith('/statistics/exams/9/rankings', expect.objectContaining({ params: expect.objectContaining({ rank_type: 'total' }) }))
     expect(get).toHaveBeenCalledWith('/statistics/exams/9/rankings', expect.objectContaining({ params: expect.not.objectContaining({ page: expect.anything() }) }))
-    expect(get).toHaveBeenCalledWith('/statistics/exams/9/segments', expect.objectContaining({ params: expect.objectContaining({ type: 'total', step: 10 }) }))
-    expect(get).toHaveBeenCalledWith('/statistics/exams/9/summary', expect.objectContaining({ params: { included_statuses: 'normal' } }))
-    expect(wrapper.text()).toContain('一班')
+    expect(wrapper.find('.gm-ranking-section').exists()).toBe(true)
+    expect(wrapper.find('.gm-overview-section').exists()).toBe(false)
     expect(wrapper.text()).toContain('张三')
     expect(wrapper.text()).toContain('99.00')
+
+    await wrapper.findAll('.gm-stats-tab')[2].trigger('click')
+    await flushPromises()
+
+    expect(get).toHaveBeenCalledWith('/statistics/exams/9/segments', expect.objectContaining({ params: expect.objectContaining({ type: 'total', step: 10 }) }))
+    expect(wrapper.find('.gm-segment-section').exists()).toBe(true)
+    expect(wrapper.find('.gm-ranking-section').exists()).toBe(false)
     expect(wrapper.text()).toContain('90-100')
+
+    await wrapper.findAll('.gm-stats-tab')[3].trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('.gm-exception-section').exists()).toBe(true)
+    expect(wrapper.findAll('.gm-exception-table')).toHaveLength(1)
     expect(wrapper.text()).toContain('李四')
-    expect(wrapper.text()).toContain('数学')
   })
 
   it('reloads statistics base metadata when reused for a new exam route id', async () => {
@@ -687,6 +825,9 @@ describe('score overview card', () => {
     const wrapper = mount(ExamStatisticsView, {
       global: { stubs: globalStubs, directives: { loading: {} } },
     })
+    await flushPromises()
+
+    await wrapper.findAll('.gm-stats-tab')[1].trigger('click')
     await flushPromises()
 
     const selects = wrapper.findAll('select')

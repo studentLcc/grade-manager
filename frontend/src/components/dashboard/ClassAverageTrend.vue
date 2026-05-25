@@ -126,7 +126,7 @@ function scoreNumber(value: string | number | null | undefined) {
 }
 
 function axisLabelText(value: string | null | undefined) {
-  const text = value || '未命名考试'
+  const text = (value || '未命名考试').replace(/^\d{4}-\d{4}\s*学年/, '').trim() || value || '未命名考试'
   return text.length > 6 ? `${text.slice(0, 6)}...` : text
 }
 

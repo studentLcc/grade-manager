@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
+import { Check, DataAnalysis } from '@element-plus/icons-vue'
 import { listClasses, type ClassRecord } from '../api/classes'
 import { listCourses, type CourseRecord } from '../api/courses'
 import { listExams, type ExamRecord } from '../api/exams'
@@ -18,6 +20,7 @@ interface PageResponse<T> {
 }
 
 const loading = ref(false)
+const router = useRouter()
 const records = ref<EditableScoreRecord[]>([])
 const examOptions = ref<ExamRecord[]>([])
 const classOptions = ref<ClassRecord[]>([])
@@ -264,9 +267,24 @@ onMounted(async () => {
             {{ examStatusLabel(row.exam_status) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" fixed="right" width="100">
+        <el-table-column label="操作" fixed="right" width="110" align="center" class-name="gm-operation-column">
           <template #default="{ row }">
-            <el-button text type="primary" :loading="row.saving" :disabled="row.exam_status !== 'active'" @click="saveRecord(row)">保存</el-button>
+            <div class="gm-table-actions gm-score-actions" aria-label="成绩操作">
+              <el-tooltip content="保存" placement="top">
+                <el-button
+                  class="gm-table-action is-primary-action"
+                  type="primary"
+                  :icon="Check"
+                  aria-label="保存"
+                  :loading="row.saving"
+                  :disabled="row.exam_status !== 'active'"
+                  @click="saveRecord(row)"
+                />
+              </el-tooltip>
+              <el-tooltip content="查看统计" placement="top">
+                <el-button class="gm-table-action" :icon="DataAnalysis" aria-label="查看统计" @click="router.push(`/exam-center/${row.exam_id}/statistics`)" />
+              </el-tooltip>
+            </div>
           </template>
         </el-table-column>
       </el-table>

@@ -113,6 +113,7 @@ function mountScoreManagement() {
         'el-select': selectStub,
         'el-table': tableStub,
         'el-table-column': tableColumnStub,
+        'el-tooltip': { template: '<span><slot /></span>' },
       },
       directives: { loading: {} },
     },
@@ -160,8 +161,21 @@ describe('score management view', () => {
     expect(wrapper.text()).toContain('正常')
     expect(wrapper.text()).not.toContain('成绩录入')
     expect(wrapper.text()).not.toContain('导入成绩')
-    expect(wrapper.text()).not.toContain('查看统计')
     expect(wrapper.text()).not.toContain('创建考试')
+  })
+
+  it('offers a statistics entry for each score record exam', async () => {
+    const wrapper = mountScoreManagement()
+    await flushPromises()
+
+    const actions = wrapper.find('.gm-score-actions')
+    expect(actions.exists()).toBe(true)
+    const buttons = actions.findAll('.gm-table-action')
+    expect(buttons.map((button) => button.attributes('aria-label'))).toEqual(['保存', '查看统计'])
+
+    await buttons[1].trigger('click')
+
+    expect(routerMocks.push).toHaveBeenCalledWith('/exam-center/9/statistics')
   })
 
   it('saves one score record through the existing exam score endpoint', async () => {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { DataAnalysis, EditPen, UploadFilled, View } from '@element-plus/icons-vue'
 import { listExams, type ExamRecord } from '../api/exams'
 import ExamWizard from '../components/exams/ExamWizard.vue'
 
@@ -144,12 +145,28 @@ onMounted(loadExams)
             {{ subjectNames(row) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" fixed="right" width="260">
+        <el-table-column label="操作" fixed="right" width="170" align="center" class-name="gm-operation-column">
           <template #default="{ row }">
-            <el-button text type="primary" @click="router.push(`/exam-center/${row.id}`)">详情</el-button>
-            <el-button text type="primary" @click="router.push(`/exam-center/${row.id}/scores`)">成绩录入</el-button>
-            <el-button text @click="router.push(`/exam-center/${row.id}/scores?import=1`)">导入成绩</el-button>
-            <el-button text @click="router.push(`/exam-center/${row.id}/statistics`)">查看统计</el-button>
+            <div class="gm-table-actions gm-exam-actions" aria-label="考试操作">
+              <el-tooltip content="详情" placement="top">
+                <el-button class="gm-table-action" :icon="View" aria-label="详情" @click="router.push(`/exam-center/${row.id}`)" />
+              </el-tooltip>
+              <el-tooltip content="成绩录入" placement="top">
+                <el-button
+                  class="gm-table-action is-primary-action"
+                  type="primary"
+                  :icon="EditPen"
+                  aria-label="成绩录入"
+                  @click="router.push(`/exam-center/${row.id}/scores`)"
+                />
+              </el-tooltip>
+              <el-tooltip content="导入成绩" placement="top">
+                <el-button class="gm-table-action" :icon="UploadFilled" aria-label="导入成绩" @click="router.push(`/exam-center/${row.id}/scores?import=1`)" />
+              </el-tooltip>
+              <el-tooltip content="查看统计" placement="top">
+                <el-button class="gm-table-action" :icon="DataAnalysis" aria-label="查看统计" @click="router.push(`/exam-center/${row.id}/statistics`)" />
+              </el-tooltip>
+            </div>
           </template>
         </el-table-column>
       </el-table>

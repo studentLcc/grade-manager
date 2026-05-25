@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { computed, h, inject, provide, type ComputedRef, type VNode } from 'vue'
 import ExamWizard from '../src/components/exams/ExamWizard.vue'
+import ExamCenterView from '../src/views/ExamCenterView.vue'
 import ExamDetailView from '../src/views/ExamDetailView.vue'
 import { updateExamClasses, updateExamSubjects } from '../src/api/exams'
 import { http } from '../src/api/http'
@@ -32,11 +34,47 @@ beforeEach(() => {
 })
 
 const buttonStub = { template: '<button><slot /></button>' }
+const actionButtonStub = {
+  props: ['icon', 'type'],
+  emits: ['click'],
+  inheritAttrs: false,
+  template: '<button v-bind="$attrs" @click="$emit(\'click\')"><slot /></button>',
+}
+const passThroughStub = { template: '<span><slot /></span>' }
+const inputStub = { template: '<input />' }
+const optionStub = { props: ['label'], template: '<option>{{ label }}</option>' }
+const paginationStub = { template: '<nav />' }
+const selectStub = { template: '<select><slot /></select>' }
 const tableStub = {
   props: ['data'],
   template: '<div><slot /><div v-for="row in data" :key="row.id || row.exam_subject_id">{{ Object.values(row).join(" ") }}</div></div>',
 }
 const tableColumnStub = { props: ['label'], template: '<div>{{ label }}<slot /></div>' }
+type TableRow = Record<string, unknown>
+const tableRowsKey = Symbol('exam-center-table-rows')
+const scopedTableStub = {
+  props: ['data'],
+  setup(props: { data?: TableRow[] }, { slots }: { slots: { default?: () => VNode[] } }) {
+    const rows = computed(() => props.data || [])
+    provide(tableRowsKey, rows)
+    return () => h('div', slots.default?.())
+  },
+}
+const scopedTableColumnStub = {
+  props: ['label'],
+  setup(props: { label?: string }, { slots }: { slots: { default?: (scope: { row: TableRow }) => VNode[] } }) {
+    const rows = inject<ComputedRef<TableRow[]>>(tableRowsKey, computed(() => []))
+    return () => {
+      const children: Array<string | VNode> = [props.label || '']
+      if (slots.default) {
+        for (const row of rows.value) {
+          children.push(...slots.default({ row }))
+        }
+      }
+      return h('div', children)
+    }
+  },
+}
 
 function deferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void
@@ -104,6 +142,52 @@ describe('exam wizard', () => {
     expect(patch).toHaveBeenCalledWith('/exams/7/subjects', {
       subjects: [{ course_id: 3, full_score: '100', pass_score: '60', excellent_score: '90' }],
     })
+  })
+
+  it('renders exam center row actions as a compact toolbar', async () => {
+    vi.spyOn(http, 'get').mockImplementation((url: string) => {
+      if (url === '/exams') {
+        return Promise.resolve({
+          data: {
+            items: [examRecord(7, '期中考试')],
+            total: 1,
+            page: 1,
+            page_size: 20,
+          },
+        })
+      }
+      return Promise.resolve({ data: {} })
+    })
+
+    const wrapper = mount(ExamCenterView, {
+      global: {
+        stubs: {
+          'el-button': actionButtonStub,
+          'el-dialog': passThroughStub,
+          'el-input': inputStub,
+          'el-option': optionStub,
+          'el-pagination': paginationStub,
+          'el-select': selectStub,
+          'el-table': scopedTableStub,
+          'el-table-column': scopedTableColumnStub,
+          'el-tooltip': passThroughStub,
+          ExamWizard: passThroughStub,
+        },
+        directives: { loading: {} },
+      },
+    })
+    await flushPromises()
+
+    const actions = wrapper.find('.gm-table-actions')
+    expect(actions.exists()).toBe(true)
+    expect(actions.classes()).toContain('gm-exam-actions')
+    const buttons = actions.findAll('.gm-table-action')
+    expect(buttons).toHaveLength(4)
+    expect(buttons.map((button) => button.attributes('aria-label'))).toEqual(['详情', '成绩录入', '导入成绩', '查看统计'])
+
+    await buttons[3].trigger('click')
+
+    expect(routerMocks.push).toHaveBeenCalledWith('/exam-center/7/statistics')
   })
 
   it('renders score entry status summary and hides unknown raw exam type', async () => {

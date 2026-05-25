@@ -35,8 +35,10 @@ const exams = ref<RecentExamRecord[]>([])
 const overview = ref<ScoreOverview | null>(null)
 const trend = ref<ClassAverageTrendPoint[]>([])
 const classes = ref<ClassRecord[]>([])
-const selectedAcademicYear = ref('')
+const selectedScoreAcademicYear = ref('')
+const selectedTrendAcademicYear = ref('')
 const selectedScoreClassId = ref<number | null>(null)
+const DASHBOARD_CLASS_PAGE_SIZE = 100
 
 const academicYears = computed(() => {
   const years = new Set(classes.value.map((classRecord) => classRecord.academic_year).filter(Boolean) as string[])
@@ -47,7 +49,7 @@ const academicYears = computed(() => {
 const scoreClassOptions = computed(() => {
   return classes.value
     .filter((classRecord) => classRecord.status === 'active')
-    .filter((classRecord) => !selectedAcademicYear.value || classRecord.academic_year === selectedAcademicYear.value)
+    .filter((classRecord) => !selectedScoreAcademicYear.value || classRecord.academic_year === selectedScoreAcademicYear.value)
     .map((classRecord) => ({ id: classRecord.id, name: classRecord.name || '未命名班级' }))
 })
 
@@ -58,12 +60,12 @@ async function loadDashboard() {
       getDashboardSummary(),
       getTodaySchedule(),
       getRecentExams(),
-      listClasses({ status: 'active', page: 1, page_size: 1000 }),
+      fetchActiveClasses(),
     ])
     summary.value = summaryResponse.data
     schedules.value = scheduleResponse.data.items
     exams.value = examResponse.data.items
-    classes.value = classesResponse.data.items
+    classes.value = classesResponse
     syncAcademicYear()
     syncSelectedScoreClass()
     await loadAnalysisCards()
@@ -74,11 +76,25 @@ async function loadDashboard() {
   }
 }
 
+async function fetchActiveClasses() {
+  const firstPage = await listClasses({ status: 'active', page: 1, page_size: DASHBOARD_CLASS_PAGE_SIZE })
+  const items = [...firstPage.data.items]
+  const pageCount = Math.ceil(firstPage.data.total / DASHBOARD_CLASS_PAGE_SIZE)
+
+  if (pageCount <= 1) return items
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: pageCount - 1 }, (_item, index) =>
+      listClasses({ status: 'active', page: index + 2, page_size: DASHBOARD_CLASS_PAGE_SIZE }),
+    ),
+  )
+  return items.concat(remainingPages.flatMap((response) => response.data.items))
+}
+
 async function loadAnalysisCards() {
-  const params = { classId: selectedScoreClassId.value, academicYear: selectedAcademicYear.value }
   const [overviewResponse, trendResponse] = await Promise.all([
-    getDashboardScoreOverview(params),
-    getClassAverageTrend(selectedAcademicYear.value),
+    getDashboardScoreOverview({ classId: selectedScoreClassId.value, academicYear: selectedScoreAcademicYear.value }),
+    getClassAverageTrend(selectedTrendAcademicYear.value),
   ])
   overview.value = overviewResponse.data
   trend.value = trendResponse.data.items
@@ -87,18 +103,32 @@ async function loadAnalysisCards() {
 async function handleScoreClassChange(classId: number | null) {
   selectedScoreClassId.value = classId
   try {
-    const response = await getDashboardScoreOverview({ classId, academicYear: selectedAcademicYear.value })
+    const response = await getDashboardScoreOverview({ classId, academicYear: selectedScoreAcademicYear.value })
     overview.value = response.data
   } catch {
     // Global http interceptor shows the user-facing error.
   }
 }
 
-async function handleAcademicYearChange(academicYear: string) {
-  selectedAcademicYear.value = academicYear
+async function handleScoreAcademicYearChange(academicYear: string) {
+  selectedScoreAcademicYear.value = academicYear
   syncSelectedScoreClass()
   try {
-    await loadAnalysisCards()
+    const response = await getDashboardScoreOverview({
+      classId: selectedScoreClassId.value,
+      academicYear: selectedScoreAcademicYear.value,
+    })
+    overview.value = response.data
+  } catch {
+    // Global http interceptor shows the user-facing error.
+  }
+}
+
+async function handleTrendAcademicYearChange(academicYear: string) {
+  selectedTrendAcademicYear.value = academicYear
+  try {
+    const response = await getClassAverageTrend(selectedTrendAcademicYear.value)
+    trend.value = response.data.items
   } catch {
     // Global http interceptor shows the user-facing error.
   }
@@ -106,8 +136,12 @@ async function handleAcademicYearChange(academicYear: string) {
 
 function syncAcademicYear() {
   const availableYears = academicYears.value
-  if (!selectedAcademicYear.value || !availableYears.includes(selectedAcademicYear.value)) {
-    selectedAcademicYear.value = availableYears[0] || currentAcademicYear()
+  const fallbackYear = availableYears[0] || currentAcademicYear()
+  if (!selectedScoreAcademicYear.value || !availableYears.includes(selectedScoreAcademicYear.value)) {
+    selectedScoreAcademicYear.value = fallbackYear
+  }
+  if (!selectedTrendAcademicYear.value || !availableYears.includes(selectedTrendAcademicYear.value)) {
+    selectedTrendAcademicYear.value = fallbackYear
   }
 }
 
@@ -158,15 +192,15 @@ onMounted(loadDashboard)
         :class-options="scoreClassOptions"
         :selected-class-id="selectedScoreClassId"
         :academic-years="academicYears"
-        :selected-academic-year="selectedAcademicYear"
+        :selected-academic-year="selectedScoreAcademicYear"
         @update:selected-class-id="handleScoreClassChange"
-        @update:selected-academic-year="handleAcademicYearChange"
+        @update:selected-academic-year="handleScoreAcademicYearChange"
       />
       <ClassAverageTrend
         :points="trend"
         :academic-years="academicYears"
-        :selected-academic-year="selectedAcademicYear"
-        @update:selected-academic-year="handleAcademicYearChange"
+        :selected-academic-year="selectedTrendAcademicYear"
+        @update:selected-academic-year="handleTrendAcademicYearChange"
       />
     </div>
   </section>

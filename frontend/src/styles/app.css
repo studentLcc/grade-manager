@@ -297,6 +297,57 @@ a {
   box-shadow: -8px 0 14px rgba(52, 81, 111, 0.1);
 }
 
+.gm-operation-column .cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+}
+
+.gm-table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.gm-table-actions .el-button + .el-button {
+  margin-left: 0;
+}
+
+.gm-table-action.el-button {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border: 1px solid #dbe7ef;
+  border-radius: var(--gm-radius);
+  background: #fff;
+  padding: 0;
+  color: #4b6476;
+}
+
+.gm-table-action.el-button:hover,
+.gm-table-action.el-button:focus-visible {
+  border-color: #9ed6dc;
+  color: #0f6f78;
+  background: #eef9fb;
+}
+
+.gm-table-action.el-button.is-primary-action {
+  border-color: var(--gm-blue);
+  color: #fff;
+  background: var(--gm-blue);
+}
+
+.gm-table-action.el-button.is-primary-action:hover,
+.gm-table-action.el-button.is-primary-action:focus-visible {
+  border-color: #1f62d3;
+  color: #fff;
+  background: #1f62d3;
+}
+
 .gm-card {
   display: grid;
   gap: 8px;
@@ -325,6 +376,120 @@ a {
 
 .gm-dashboard-grid {
   align-items: start;
+}
+
+.gm-stats-control-card {
+  display: grid;
+  gap: 10px;
+}
+
+.gm-stats-filter-row {
+  margin-bottom: 0;
+}
+
+.gm-stats-tabs,
+.gm-exception-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gm-stats-tab,
+.gm-exception-type-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  background: #fff;
+  padding: 0 12px;
+  color: #4d6578;
+  font: inherit;
+  cursor: pointer;
+}
+
+.gm-stats-tab strong,
+.gm-exception-type-chip strong {
+  min-width: 20px;
+  border-radius: 999px;
+  background: #edf4f8;
+  padding: 1px 6px;
+  color: #526a7c;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.gm-stats-tab:hover,
+.gm-stats-tab:focus-visible,
+.gm-exception-type-chip:hover,
+.gm-exception-type-chip:focus-visible,
+.gm-stats-tab.is-active,
+.gm-exception-type-chip.is-active {
+  border-color: #8ed1d9;
+  color: #0f6f78;
+  background: #eef9fb;
+}
+
+.gm-stats-tab.is-active,
+.gm-exception-type-chip.is-active {
+  font-weight: 700;
+}
+
+.gm-stats-tab.is-active strong,
+.gm-exception-type-chip.is-active strong {
+  color: #0f6f78;
+  background: #d9f1f4;
+}
+
+.gm-stats-panel-grid {
+  display: grid;
+  grid-template-columns: 1.1fr repeat(2, minmax(0, 1fr));
+  gap: var(--gm-gap);
+}
+
+.gm-stats-section {
+  align-content: start;
+}
+
+.gm-stat-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.gm-stat-metric {
+  min-width: 0;
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  background: #fbfdfe;
+  padding: 10px;
+}
+
+.gm-stat-metric span {
+  display: block;
+  color: var(--gm-muted);
+  font-size: 12px;
+}
+
+.gm-stat-metric strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--gm-text);
+  font-size: 20px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.gm-stats-inner-filter {
+  align-items: flex-start;
+}
+
+.gm-exception-section {
+  display: grid;
+  gap: 10px;
 }
 
 .gm-metric-card {
@@ -494,6 +659,12 @@ a {
 
 .gm-score-class-filter {
   width: 100%;
+}
+
+.gm-score-class-filter.gm-trend-class-strip {
+  min-height: 44px;
+  align-items: flex-start;
+  padding-bottom: 10px;
 }
 
 .gm-dashboard-analysis-card {
@@ -898,6 +1069,7 @@ a {
 }
 
 .gm-trend-chart-shell {
+  height: 230px;
   grid-template-rows: minmax(0, 1fr) auto;
   padding: 8px 8px 7px;
 }
@@ -986,9 +1158,10 @@ a {
 
 .gm-trend-point-list {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   min-height: 0;
+  overflow: hidden;
 }
 
 .gm-trend-point {
@@ -996,7 +1169,7 @@ a {
   border: 1px solid #e4edf2;
   border-radius: var(--gm-radius);
   background: #fff;
-  padding: 6px 7px;
+  padding: 5px 7px;
 }
 
 .gm-trend-point-label {
@@ -1187,6 +1360,102 @@ a {
   gap: 10px;
 }
 
+.gm-account-card {
+  overflow: hidden;
+  padding: 0;
+}
+
+.gm-account-identity {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  border-bottom: 1px solid var(--gm-border);
+  background: linear-gradient(135deg, #f8fcfd 0%, #eef9fb 100%);
+  padding: 16px;
+}
+
+.gm-account-avatar {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border-radius: 16px;
+  color: #fff;
+  background: linear-gradient(135deg, #0f9aa6, #2f80ed);
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.gm-account-identity span {
+  color: var(--gm-muted);
+  font-size: 12px;
+}
+
+.gm-account-identity h2 {
+  overflow: hidden;
+  margin: 3px 0 0;
+  color: var(--gm-text);
+  font-size: 22px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-account-identity p {
+  margin-top: 4px;
+}
+
+.gm-account-status {
+  align-self: start;
+  border: 1px solid #c9e8d7;
+  border-radius: 999px;
+  background: #f2fbf6;
+  padding: 4px 10px;
+  color: #247b4d;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.gm-account-status.is-inactive,
+.gm-account-status.is-archived {
+  border-color: #e4edf2;
+  background: #f8fbfc;
+  color: #647887;
+}
+
+.gm-account-info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px;
+}
+
+.gm-account-info-item {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  border: 1px solid #e4edf2;
+  border-radius: var(--gm-radius);
+  background: #fbfdfe;
+  padding: 10px 12px;
+}
+
+.gm-account-info-item span {
+  color: var(--gm-muted);
+  font-size: 12px;
+}
+
+.gm-account-info-item strong {
+  overflow: hidden;
+  color: var(--gm-text);
+  font-size: 16px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .gm-chip {
   border: 1px solid #bfe5ea;
   border-radius: var(--gm-radius);
@@ -1202,6 +1471,12 @@ a {
   gap: 6px;
   align-items: center;
   min-width: 190px;
+}
+
+.gm-score-cell .el-input-number,
+.gm-score-cell .el-select {
+  width: 100%;
+  min-width: 0;
 }
 
 .gm-score-cell.has-error {
