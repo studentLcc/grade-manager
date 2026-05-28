@@ -224,3 +224,8 @@ __marimo__/
 
 # Superpowers brainstorming companion
 .superpowers/
+
+# Local tool and QA artifacts
+.codegraph/
+.qa-artifacts/
+backend/package-lock.json
