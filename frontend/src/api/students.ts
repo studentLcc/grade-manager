@@ -52,10 +52,19 @@ export function removeStudent(id: number) {
   return http.delete(`/students/${id}`)
 }
 
-export function importStudents(targetClassId: number, file: File) {
+export function downloadStudentTemplate() {
+  return http.get<Blob>('/students/import-template', {
+    responseType: 'blob',
+  })
+}
+
+export function importStudents(targetClassId: number, file: File, updateExisting = false) {
   const formData = new FormData()
   formData.append('file', file)
+  const params: Record<string, unknown> = { target_class_id: targetClassId }
+  if (updateExisting) params.update_existing = true
+
   return http.post<StudentImportResult>('/students/import', formData, {
-    params: { target_class_id: targetClassId },
+    params,
   })
 }

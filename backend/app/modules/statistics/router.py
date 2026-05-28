@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_teacher
+from app.core.pagination import PageParams
 from app.models import Teacher
 from app.modules.statistics.schemas import (
     ClassOverviewRead,
@@ -34,6 +35,7 @@ def exam_summary(
 
 @router.get("/exams/{exam_id}/rankings", response_model=RankingRead)
 def rankings(
+    params: PageParams = Depends(),
     exam_id: int = Path(gt=0),
     rank_type: str = Query(default="total"),
     exam_subject_id: int | None = Query(default=None, gt=0),
@@ -50,11 +52,14 @@ def rankings(
         exam_subject_id,
         class_id,
         included_statuses,
+        params.page,
+        params.page_size,
     )
 
 
 @router.get("/exams/{exam_id}/segments", response_model=SegmentRead)
 def segments(
+    params: PageParams = Depends(),
     exam_id: int = Path(gt=0),
     type: str = Query(default="total"),  # noqa: A002
     step: int = Query(default=10, gt=0),
@@ -64,7 +69,18 @@ def segments(
     db: Session = Depends(get_db),
     current_teacher: Teacher = Depends(get_current_teacher),
 ) -> dict[str, object]:
-    return get_segments(db, current_teacher, exam_id, type, step, exam_subject_id, class_id, included_statuses)
+    return get_segments(
+        db,
+        current_teacher,
+        exam_id,
+        type,
+        step,
+        exam_subject_id,
+        class_id,
+        included_statuses,
+        params.page,
+        params.page_size,
+    )
 
 
 @router.get("/students/{student_id}/history", response_model=StudentHistoryRead)

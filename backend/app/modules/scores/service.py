@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 
 from app.models import Class, Course, Exam, ExamClass, ExamStudent, ExamSubject, Score, Student, Teacher
 from app.modules.exams.service import get_active_exam_for_mutation, get_exam
-from app.modules.exams.roster_service import ensure_exam_roster
 from app.modules.scores.schemas import ScoreFailureItem, ScoreSaveItem, ScoreSaveRequest
 
 ABNORMAL_SCORE_STATUSES = {"absent", "deferred", "cheating", "exempt"}
@@ -78,9 +77,6 @@ def list_score_records(
 
 def get_score_sheet(db: Session, teacher: Teacher, exam_id: int) -> dict[str, object]:
     exam = get_exam(db, teacher, exam_id)
-    if exam.status == "active":
-        ensure_exam_roster(db, exam)
-        db.commit()
 
     classes = db.execute(
         select(ExamClass, Class)

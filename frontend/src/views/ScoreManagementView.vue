@@ -7,6 +7,8 @@ import { listClasses, type ClassRecord } from '../api/classes'
 import { listCourses, type CourseRecord } from '../api/courses'
 import { listExams, type ExamRecord } from '../api/exams'
 import { listScoreRecords, saveScores, type ScoreRecord, type ScoreStatus } from '../api/scores'
+import TablePagination from '../components/common/TablePagination.vue'
+import TableSurface from '../components/common/TableSurface.vue'
 
 type EditableScoreRecord = ScoreRecord & {
   saving?: boolean
@@ -217,81 +219,85 @@ onMounted(async () => {
     </div>
 
     <section class="gm-page-card">
-      <div class="gm-filter-row gm-filter-row-wide">
-        <el-input v-model="filters.keyword" placeholder="搜索考试、学生、学号或科目" clearable />
-        <el-select v-model="filters.exam_id" placeholder="考试" clearable>
-          <el-option v-for="exam in examOptions" :key="exam.id" :label="exam.name" :value="exam.id" />
-        </el-select>
-        <el-select v-model="filters.class_id" placeholder="班级" clearable>
-          <el-option v-for="classRecord in classOptions" :key="classRecord.id" :label="classRecord.name" :value="classRecord.id" />
-        </el-select>
-        <el-select v-model="filters.course_id" placeholder="科目" clearable>
-          <el-option v-for="course in courseOptions" :key="course.id" :label="course.course_name" :value="course.id" />
-        </el-select>
-        <el-select v-model="filters.score_status" placeholder="成绩状态" clearable>
-          <el-option v-for="item in scoreStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
-        </el-select>
-        <el-select v-model="filters.status" placeholder="考试状态">
-          <el-option v-for="item in examStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
-        </el-select>
-      </div>
-
-      <el-table v-loading="loading" border class="gm-data-table" :data="records" empty-text="暂无成绩">
-        <el-table-column prop="exam_name" label="考试名称" min-width="140" />
-        <el-table-column prop="term" label="学期" width="130" />
-        <el-table-column prop="class_name" label="班级" width="110" />
-        <el-table-column prop="student_no" label="学号" width="110" />
-        <el-table-column prop="student_name" label="学生" width="100" />
-        <el-table-column prop="course_name" label="科目" width="110" />
-        <el-table-column prop="full_score" label="满分" width="90" />
-        <el-table-column label="成绩" width="130">
-          <template #default="{ row }">
-            <el-input v-model="row.score" :disabled="row.score_status !== 'normal' || row.exam_status !== 'active'" placeholder="成绩" />
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="120">
-          <template #default="{ row }">
-            <el-select v-model="row.score_status" :disabled="row.exam_status !== 'active'" @change="handleScoreStatusChange(row)">
+      <TableSurface>
+        <template #toolbar>
+          <div class="gm-filter-row gm-filter-row-wide">
+            <el-input v-model="filters.keyword" placeholder="搜索考试、学生、学号或科目" clearable />
+            <el-select v-model="filters.exam_id" placeholder="考试" clearable>
+              <el-option v-for="exam in examOptions" :key="exam.id" :label="exam.name" :value="exam.id" />
+            </el-select>
+            <el-select v-model="filters.class_id" placeholder="班级" clearable>
+              <el-option v-for="classRecord in classOptions" :key="classRecord.id" :label="classRecord.name" :value="classRecord.id" />
+            </el-select>
+            <el-select v-model="filters.course_id" placeholder="科目" clearable>
+              <el-option v-for="course in courseOptions" :key="course.id" :label="course.course_name" :value="course.id" />
+            </el-select>
+            <el-select v-model="filters.score_status" placeholder="成绩状态" clearable>
               <el-option v-for="item in scoreStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
-            <span class="gm-sr-only">{{ scoreStatusLabel(row.score_status) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="备注" min-width="140">
-          <template #default="{ row }">
-            <el-input v-model="row.remark" :disabled="row.exam_status !== 'active'" placeholder="备注" />
-          </template>
-        </el-table-column>
-        <el-table-column label="考试状态" width="100">
-          <template #default="{ row }">
-            {{ examStatusLabel(row.exam_status) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" fixed="right" width="110" align="center" class-name="gm-operation-column">
-          <template #default="{ row }">
-            <div class="gm-table-actions gm-score-actions" aria-label="成绩操作">
-              <el-tooltip content="保存" placement="top">
-                <el-button
-                  class="gm-table-action is-primary-action"
-                  type="primary"
-                  :icon="Check"
-                  aria-label="保存"
-                  :loading="row.saving"
-                  :disabled="row.exam_status !== 'active'"
-                  @click="saveRecord(row)"
-                />
-              </el-tooltip>
-              <el-tooltip content="查看统计" placement="top">
-                <el-button class="gm-table-action" :icon="DataAnalysis" aria-label="查看统计" @click="router.push(`/exam-center/${row.exam_id}/statistics`)" />
-              </el-tooltip>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
+            <el-select v-model="filters.status" placeholder="考试状态">
+              <el-option v-for="item in examStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </div>
+        </template>
 
-      <div class="gm-pagination">
-        <el-pagination v-model:current-page="filters.page" v-model:page-size="filters.page_size" layout="prev, pager, next, sizes" :total="total" />
-      </div>
+        <el-table v-loading="loading" border class="gm-data-table" :data="records" empty-text="暂无成绩">
+          <el-table-column prop="exam_name" label="考试名称" min-width="140" />
+          <el-table-column prop="term" label="学期" width="130" />
+          <el-table-column prop="class_name" label="班级" width="110" />
+          <el-table-column prop="student_no" label="学号" width="110" />
+          <el-table-column prop="student_name" label="学生" width="100" />
+          <el-table-column prop="course_name" label="科目" width="110" />
+          <el-table-column prop="full_score" label="满分" width="90" />
+          <el-table-column label="成绩" width="130">
+            <template #default="{ row }">
+              <el-input v-model="row.score" :disabled="row.score_status !== 'normal' || row.exam_status !== 'active'" placeholder="成绩" />
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="120">
+            <template #default="{ row }">
+              <el-select v-model="row.score_status" :disabled="row.exam_status !== 'active'" @change="handleScoreStatusChange(row)">
+                <el-option v-for="item in scoreStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
+              </el-select>
+              <span class="gm-sr-only">{{ scoreStatusLabel(row.score_status) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="备注" min-width="140">
+            <template #default="{ row }">
+              <el-input v-model="row.remark" :disabled="row.exam_status !== 'active'" placeholder="备注" />
+            </template>
+          </el-table-column>
+          <el-table-column label="考试状态" width="100">
+            <template #default="{ row }">
+              {{ examStatusLabel(row.exam_status) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" fixed="right" width="110" align="center" class-name="gm-operation-column">
+            <template #default="{ row }">
+              <div class="gm-table-actions gm-score-actions" aria-label="成绩操作">
+                <el-tooltip content="保存" placement="top">
+                  <el-button
+                    class="gm-table-action is-primary-action"
+                    type="primary"
+                    :icon="Check"
+                    aria-label="保存"
+                    :loading="row.saving"
+                    :disabled="row.exam_status !== 'active'"
+                    @click="saveRecord(row)"
+                  />
+                </el-tooltip>
+                <el-tooltip content="查看统计" placement="top">
+                  <el-button class="gm-table-action" :icon="DataAnalysis" aria-label="查看统计" @click="router.push(`/exam-center/${row.exam_id}/statistics`)" />
+                </el-tooltip>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <template #pagination>
+          <TablePagination v-model:current-page="filters.page" v-model:page-size="filters.page_size" :total="total" />
+        </template>
+      </TableSurface>
     </section>
   </section>
 </template>

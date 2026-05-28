@@ -1,9 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { StudentImportResult } from '../../api/students'
+
+export interface ImportResultSummary {
+  batch_id: string | number
+  status: string
+  success_count: number
+  failed_count: number
+}
 
 const props = defineProps<{
-  result: StudentImportResult | null
+  result: ImportResultSummary | null
 }>()
 
 const importStatusLabels: Record<string, string> = {

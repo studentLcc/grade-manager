@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { listClasses, type ClassRecord } from '../api/classes'
 import { createCourse, listCourses, updateCourse, type CourseCreatePayload, type CourseRecord } from '../api/courses'
 import { createSchedule, listSchedules, updateSchedule, type ScheduleCreatePayload, type ScheduleRecord } from '../api/schedules'
+import TablePagination from '../components/common/TablePagination.vue'
+import TableSurface from '../components/common/TableSurface.vue'
 
 interface PageResponse<T> {
   items: T[]
@@ -260,7 +262,6 @@ async function saveCourse() {
       courseFilters.page = 1
     }
     courseDialogVisible.value = false
-    resetCourseForm()
     await Promise.all([loadCourses(), loadCourseOptions()])
   } catch {
     // Keep the dialog open so the teacher can correct or retry.
@@ -297,7 +298,6 @@ async function saveSchedule() {
       scheduleFilters.page = 1
     }
     scheduleDialogVisible.value = false
-    resetScheduleForm()
     await loadSchedules()
   } catch {
     // Keep the dialog open so the teacher can correct or retry.
@@ -324,6 +324,16 @@ function resetScheduleForm() {
     status: 'active',
     remark: '',
   })
+}
+
+function handleCourseDialogClosed() {
+  resetCourseForm()
+  void nextTick(() => courseFormRef.value?.clearValidate())
+}
+
+function handleScheduleDialogClosed() {
+  resetScheduleForm()
+  void nextTick(() => scheduleFormRef.value?.clearValidate())
 }
 
 function openCreateCourseDialog() {
@@ -418,83 +428,85 @@ onMounted(async () => {
     </div>
 
     <section class="gm-page-card">
-      <div class="gm-tab-label-row" aria-hidden="true">
-        <span>课程管理</span>
-        <span>周课表</span>
-      </div>
       <el-tabs v-model="activeTab">
         <el-tab-pane label="课程管理" name="courses">
           <div class="gm-section-title">
             <h2>课程管理</h2>
-            <div class="gm-toolbar">
-              <el-select v-model="courseFilters.status" placeholder="课程状态">
-                <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
-              </el-select>
-              <el-button type="primary" @click="openCreateCourseDialog">新增课程</el-button>
-            </div>
           </div>
-          <el-table v-loading="courseLoading" border class="gm-data-table" :data="courseRows" empty-text="暂无课程">
-            <el-table-column prop="course_name" label="课程名称" />
-            <el-table-column prop="status_display" label="状态" width="90" />
-            <el-table-column prop="remark" label="备注" />
-            <el-table-column label="操作" fixed="right" width="90">
-              <template #default="{ row }">
-                <el-button text type="primary" @click="openEditCourseDialog(row)">编辑</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <div class="gm-pagination">
-            <el-pagination
-              v-model:current-page="courseFilters.page"
-              v-model:page-size="courseFilters.page_size"
-              layout="prev, pager, next, sizes"
-              :total="courseTotal"
-            />
-          </div>
+          <TableSurface>
+            <template #toolbar>
+              <div class="gm-filter-row">
+                <el-select v-model="courseFilters.status" placeholder="课程状态">
+                  <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
+                </el-select>
+              </div>
+              <div class="gm-toolbar">
+                <el-button type="primary" @click="openCreateCourseDialog">新增课程</el-button>
+              </div>
+            </template>
+
+            <el-table v-loading="courseLoading" border class="gm-data-table" :data="courseRows" empty-text="暂无课程">
+              <el-table-column prop="course_name" label="课程名称" />
+              <el-table-column prop="status_display" label="状态" width="90" />
+              <el-table-column prop="remark" label="备注" />
+              <el-table-column label="操作" fixed="right" width="90">
+                <template #default="{ row }">
+                  <el-button text type="primary" @click="openEditCourseDialog(row)">编辑</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+
+            <template #pagination>
+              <TablePagination v-model:current-page="courseFilters.page" v-model:page-size="courseFilters.page_size" :total="courseTotal" />
+            </template>
+          </TableSurface>
         </el-tab-pane>
 
         <el-tab-pane label="周课表" name="schedule">
           <div class="gm-section-title">
             <h2>周课表</h2>
-            <div class="gm-toolbar">
-              <el-select v-model="scheduleFilters.class_id" placeholder="选择班级" clearable>
-                <el-option v-for="item in classes" :key="item.id" :label="item.name" :value="item.id" />
-              </el-select>
-              <el-select v-model="scheduleFilters.status" placeholder="课表状态">
-                <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
-              </el-select>
-              <el-button type="primary" @click="openCreateScheduleDialog">新增课表</el-button>
-            </div>
           </div>
-          <el-table v-loading="scheduleLoading" border class="gm-data-table" :data="scheduleRows" empty-text="暂无课表">
-            <el-table-column prop="class_display" label="班级" />
-            <el-table-column prop="weekday_display" label="星期" width="90" />
-            <el-table-column prop="period_no" label="节次" width="90" />
-            <el-table-column prop="course_display" label="课程" />
-            <el-table-column prop="start_time" label="开始" width="100" />
-            <el-table-column prop="end_time" label="结束" width="100" />
-            <el-table-column prop="location" label="地点" />
-            <el-table-column prop="status_display" label="状态" width="90" />
-            <el-table-column prop="remark" label="备注" />
-            <el-table-column label="操作" fixed="right" width="90">
-              <template #default="{ row }">
-                <el-button text type="primary" @click="openEditScheduleDialog(row)">编辑</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <div class="gm-pagination">
-            <el-pagination
-              v-model:current-page="scheduleFilters.page"
-              v-model:page-size="scheduleFilters.page_size"
-              layout="prev, pager, next, sizes"
-              :total="scheduleTotal"
-            />
-          </div>
+          <TableSurface>
+            <template #toolbar>
+              <div class="gm-filter-row gm-filter-row-wide">
+                <el-select v-model="scheduleFilters.class_id" placeholder="选择班级" clearable>
+                  <el-option v-for="item in classes" :key="item.id" :label="item.name" :value="item.id" />
+                </el-select>
+                <el-select v-model="scheduleFilters.status" placeholder="课表状态">
+                  <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
+                </el-select>
+              </div>
+              <div class="gm-toolbar">
+                <el-button type="primary" @click="openCreateScheduleDialog">新增课表</el-button>
+              </div>
+            </template>
+
+            <el-table v-loading="scheduleLoading" border class="gm-data-table" :data="scheduleRows" empty-text="暂无课表">
+              <el-table-column prop="class_display" label="班级" />
+              <el-table-column prop="weekday_display" label="星期" width="90" />
+              <el-table-column prop="period_no" label="节次" width="90" />
+              <el-table-column prop="course_display" label="课程" />
+              <el-table-column prop="start_time" label="开始" width="100" />
+              <el-table-column prop="end_time" label="结束" width="100" />
+              <el-table-column prop="location" label="地点" />
+              <el-table-column prop="status_display" label="状态" width="90" />
+              <el-table-column prop="remark" label="备注" />
+              <el-table-column label="操作" fixed="right" width="90">
+                <template #default="{ row }">
+                  <el-button text type="primary" @click="openEditScheduleDialog(row)">编辑</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+
+            <template #pagination>
+              <TablePagination v-model:current-page="scheduleFilters.page" v-model:page-size="scheduleFilters.page_size" :total="scheduleTotal" />
+            </template>
+          </TableSurface>
         </el-tab-pane>
       </el-tabs>
     </section>
 
-    <el-dialog v-model="courseDialogVisible" title="课程信息" width="520px">
+    <el-dialog v-model="courseDialogVisible" title="课程信息" width="520px" @closed="handleCourseDialogClosed">
       <el-form ref="courseFormRef" :model="courseForm" :rules="courseRules" label-width="88px">
         <el-form-item label="课程名称" prop="course_name" required>
           <el-input v-model="courseForm.course_name" />
@@ -517,7 +529,7 @@ onMounted(async () => {
       </template>
     </el-dialog>
 
-    <el-dialog v-model="scheduleDialogVisible" title="课表信息" width="620px">
+    <el-dialog v-model="scheduleDialogVisible" title="课表信息" width="620px" @closed="handleScheduleDialogClosed">
       <el-form ref="scheduleFormRef" :model="scheduleForm" :rules="scheduleRules" label-width="98px">
         <el-form-item label="班级" prop="class_id" required>
           <el-select v-model="scheduleForm.class_id">

@@ -79,6 +79,8 @@ def get_rankings(
     exam_subject_id: int | None,
     class_id: int | None,
     included_statuses_raw: str | None,
+    page: int,
+    page_size: int,
 ) -> dict[str, object]:
     exam = _get_exam(db, teacher, exam_id)
     included_statuses = parse_included_statuses(included_statuses_raw)
@@ -104,15 +106,21 @@ def get_rankings(
         raise AppError(422, "VALIDATION_ERROR", "rank_type 参数不支持")
 
     ranked = sorted(scores, key=lambda item: (-item[1], item[0].exam_student.id))
+    total = len(ranked)
+    offset = (page - 1) * page_size
+    page_items = ranked[offset : offset + page_size]
     return {
         "exam": _exam_ref(exam),
         "included_statuses": included_statuses,
         "rank_type": rank_type,
         "exam_subject_id": exam_subject_id,
         "class_id": class_id,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
         "items": [
             {
-                "rank": index + 1,
+                "rank": offset + index + 1,
                 "exam_student_id": entry.exam_student.id,
                 "student_id": entry.student.id,
                 "student_no": entry.student.student_no,
@@ -121,7 +129,7 @@ def get_rankings(
                 "class_name": entry.class_.name,
                 "score": _money(score),
             }
-            for index, (entry, score) in enumerate(ranked)
+            for index, (entry, score) in enumerate(page_items)
         ],
     }
 
@@ -135,6 +143,8 @@ def get_segments(
     exam_subject_id: int | None,
     class_id: int | None,
     included_statuses_raw: str | None,
+    page: int,
+    page_size: int,
 ) -> dict[str, object]:
     exam = _get_exam(db, teacher, exam_id)
     included_statuses = parse_included_statuses(included_statuses_raw)
@@ -154,13 +164,19 @@ def get_segments(
         scores = [total for _, total in _student_totals(entries, included_statuses)]
     else:
         raise AppError(422, "VALIDATION_ERROR", "type 参数不支持")
+    segment_items = _segments(scores, step)
+    total = len(segment_items)
+    offset = (page - 1) * page_size
     return {
         "exam": _exam_ref(exam),
         "included_statuses": included_statuses,
         "type": segment_type,
         "exam_subject_id": exam_subject_id,
         "step": step,
-        "items": _segments(scores, step),
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "items": segment_items[offset : offset + page_size],
     }
 
 

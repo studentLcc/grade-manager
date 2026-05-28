@@ -2,6 +2,8 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { listImports, type ImportBatchRecord } from '../api/imports'
+import TablePagination from '../components/common/TablePagination.vue'
+import TableSurface from '../components/common/TableSurface.vue'
 
 const router = useRouter()
 const loading = ref(false)
@@ -116,46 +118,50 @@ onMounted(loadRecords)
     </div>
 
     <section class="gm-page-card">
-      <div class="gm-filter-row">
-        <el-select v-model="filters.import_type" placeholder="导入类型" clearable>
-          <el-option label="学生导入" value="students" />
-          <el-option label="成绩导入" value="scores" />
-        </el-select>
-        <el-select v-model="filters.status" placeholder="状态" clearable>
-          <el-option label="待处理" value="pending" />
-          <el-option label="处理中" value="processing" />
-          <el-option label="成功" value="success" />
-          <el-option label="部分成功" value="partial_success" />
-          <el-option label="失败" value="failed" />
-        </el-select>
-      </div>
+      <TableSurface>
+        <template #toolbar>
+          <div class="gm-filter-row">
+            <el-select v-model="filters.import_type" placeholder="导入类型" clearable>
+              <el-option label="学生导入" value="students" />
+              <el-option label="成绩导入" value="scores" />
+            </el-select>
+            <el-select v-model="filters.status" placeholder="状态" clearable>
+              <el-option label="待处理" value="pending" />
+              <el-option label="处理中" value="processing" />
+              <el-option label="成功" value="success" />
+              <el-option label="部分成功" value="partial_success" />
+              <el-option label="失败" value="failed" />
+            </el-select>
+          </div>
+        </template>
 
-      <el-table v-loading="loading" border class="gm-data-table" :data="displayRecords" empty-text="暂无导入记录">
-        <el-table-column label="导入类型" width="120">
-          <template #default="{ row }">{{ row.import_type_display }}</template>
-        </el-table-column>
-        <el-table-column label="目标对象" min-width="180">
-          <template #default="{ row }">{{ row.target_display }}</template>
-        </el-table-column>
-        <el-table-column prop="file_name" label="文件名" min-width="180" />
-        <el-table-column label="状态" width="110">
-          <template #default="{ row }">{{ row.status_display }}</template>
-        </el-table-column>
-        <el-table-column prop="success_count" label="成功数" width="100" />
-        <el-table-column prop="failed_count" label="失败数" width="100" />
-        <el-table-column label="导入时间" min-width="170">
-          <template #default="{ row }">{{ row.import_time_display }}</template>
-        </el-table-column>
-        <el-table-column label="操作" fixed="right" width="100">
-          <template #default="{ row }">
-            <el-button text type="primary" @click="router.push(`/imports/${row.id}`)">详情</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+        <el-table v-loading="loading" border class="gm-data-table" :data="displayRecords" empty-text="暂无导入记录">
+          <el-table-column label="导入类型" width="120">
+            <template #default="{ row }">{{ row.import_type_display }}</template>
+          </el-table-column>
+          <el-table-column label="目标对象" min-width="180">
+            <template #default="{ row }">{{ row.target_display }}</template>
+          </el-table-column>
+          <el-table-column prop="file_name" label="文件名" min-width="180" />
+          <el-table-column label="状态" width="110">
+            <template #default="{ row }">{{ row.status_display }}</template>
+          </el-table-column>
+          <el-table-column prop="success_count" label="成功数" width="100" />
+          <el-table-column prop="failed_count" label="失败数" width="100" />
+          <el-table-column label="导入时间" min-width="170">
+            <template #default="{ row }">{{ row.import_time_display }}</template>
+          </el-table-column>
+          <el-table-column label="操作" fixed="right" width="100">
+            <template #default="{ row }">
+              <el-button text type="primary" @click="router.push(`/imports/${row.id}`)">详情</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
 
-      <div class="gm-pagination">
-        <el-pagination v-model:current-page="filters.page" v-model:page-size="filters.page_size" layout="prev, pager, next, sizes" :total="total" />
-      </div>
+        <template #pagination>
+          <TablePagination v-model:current-page="filters.page" v-model:page-size="filters.page_size" :total="total" />
+        </template>
+      </TableSurface>
     </section>
   </section>
 </template>

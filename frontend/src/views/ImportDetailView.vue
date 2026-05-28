@@ -2,6 +2,8 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getImportBatch, listImportErrors, type ImportBatchRecord, type ImportErrorRecord } from '../api/imports'
+import TablePagination from '../components/common/TablePagination.vue'
+import TableSurface from '../components/common/TableSurface.vue'
 import ImportErrorTable from '../components/imports/ImportErrorTable.vue'
 
 const route = useRoute()
@@ -122,10 +124,19 @@ watch(
       <div class="gm-section-title">
         <h2>行级错误</h2>
       </div>
-      <ImportErrorTable :errors="errors" />
-      <div class="gm-pagination">
-        <el-pagination v-model:current-page="page.page" v-model:page-size="page.page_size" layout="prev, pager, next, sizes" :total="total" @change="loadDetail" />
-      </div>
+      <TableSurface>
+        <template #toolbar>
+          <div class="gm-filter-row">
+            <span>失败行 {{ total }} 条</span>
+          </div>
+        </template>
+
+        <ImportErrorTable :errors="errors" />
+
+        <template #pagination>
+          <TablePagination v-model:current-page="page.page" v-model:page-size="page.page_size" :total="total" @change="loadDetail" />
+        </template>
+      </TableSurface>
     </section>
   </section>
 </template>

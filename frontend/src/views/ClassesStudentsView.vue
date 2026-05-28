@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { ElMessage, type FormInstance, type FormRules, type UploadRequestOptions, type UploadUserFile } from 'element-plus'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { ElMessage, type FormInstance, type FormRules, type UploadRequestOptions } from 'element-plus'
 import { createClass, listClasses, updateClass, type ClassCreatePayload, type ClassRecord } from '../api/classes'
 import {
   createStudent,
+  downloadStudentTemplate,
   importStudents,
   listStudents,
   updateStudent,
@@ -11,7 +12,11 @@ import {
   type StudentImportResult,
   type StudentRecord,
 } from '../api/students'
+import TablePagination from '../components/common/TablePagination.vue'
+import TableSurface from '../components/common/TableSurface.vue'
+import ImportUploadDialog from '../components/imports/ImportUploadDialog.vue'
 import ImportResultPanel from '../components/imports/ImportResultPanel.vue'
+import { downloadBlob } from '../utils/download'
 
 interface PageResponse<T> {
   items: T[]
@@ -48,8 +53,10 @@ const studentDialogVisible = ref(false)
 const activeTab = ref('students')
 const classFormRef = ref<FormInstance>()
 const studentFormRef = ref<FormInstance>()
+const studentImportVisible = ref(false)
 const importResult = ref<StudentImportResult | null>(null)
-const uploadFiles = ref<UploadUserFile[]>([])
+const studentImportUploading = ref(false)
+const studentImportUpdateExisting = ref(false)
 
 type ClassFormState = ClassCreatePayload & { status: string }
 type StudentFormState = StudentCreatePayload & { status: string }
@@ -102,6 +109,10 @@ const studentRows = computed(() =>
     status_display: statusLabel(student.status),
   })),
 )
+const selectedStudentClassName = computed(() => {
+  if (!studentFilters.class_id) return ''
+  return classNameById.value.get(studentFilters.class_id) || `班级 ${studentFilters.class_id}`
+})
 const studentClassOptions = computed(() => {
   const options = [...classOptions.value]
   if (editingStudentId.value && studentForm.class_id && !options.some((item) => item.id === studentForm.class_id)) {
@@ -237,7 +248,6 @@ async function saveClass() {
       classFilters.page = 1
     }
     classDialogVisible.value = false
-    resetClassForm()
     await Promise.all([loadClasses(), loadClassOptions()])
   } catch {
     // Keep the dialog open so the teacher can correct or retry.
@@ -269,7 +279,6 @@ async function saveStudent() {
       studentFilters.page = 1
     }
     studentDialogVisible.value = false
-    resetStudentForm()
     await loadStudents()
   } catch {
     // Keep the dialog open so the teacher can correct or retry.
@@ -286,6 +295,16 @@ function resetClassForm() {
 function resetStudentForm() {
   editingStudentId.value = null
   Object.assign(studentForm, { student_no: '', name: '', class_id: null, gender: '', status: 'active', remark: '' })
+}
+
+function handleClassDialogClosed() {
+  resetClassForm()
+  void nextTick(() => classFormRef.value?.clearValidate())
+}
+
+function handleStudentDialogClosed() {
+  resetStudentForm()
+  void nextTick(() => studentFormRef.value?.clearValidate())
 }
 
 function openCreateClassDialog() {
@@ -329,10 +348,22 @@ async function uploadStudents(options: UploadRequestOptions) {
     return
   }
 
+  studentImportUploading.value = true
   try {
-    const { data } = await importStudents(studentFilters.class_id, options.file)
+    const { data } = await importStudents(studentFilters.class_id, options.file, studentImportUpdateExisting.value)
     showImportResult(data)
     await loadStudents()
+  } catch {
+    // Global http interceptor shows the user-facing error.
+  } finally {
+    studentImportUploading.value = false
+  }
+}
+
+async function downloadTemplate() {
+  try {
+    const { data } = await downloadStudentTemplate()
+    downloadBlob(data, 'student-import-template.xlsx')
   } catch {
     // Global http interceptor shows the user-facing error.
   }
@@ -394,97 +425,104 @@ onMounted(async () => {
     </div>
 
     <section class="gm-page-card">
-      <div class="gm-tab-label-row" aria-hidden="true">
-        <span>班级管理</span>
-        <span>学生管理</span>
-      </div>
       <el-tabs v-model="activeTab">
         <el-tab-pane label="班级管理" name="classes">
           <div class="gm-section-title">
             <h2>班级列表</h2>
-            <button class="gm-action-button" type="button" @click="openCreateClassDialog">新增班级</button>
           </div>
-          <div class="gm-filter-row">
-            <el-input v-model="classFilters.keyword" placeholder="搜索班级名称" clearable />
-            <el-select v-model="classFilters.status" placeholder="状态">
-              <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
-            </el-select>
-          </div>
-          <el-table v-loading="classLoading" border class="gm-data-table" :data="classRows" empty-text="暂无班级">
-            <el-table-column prop="name" label="班级" />
-            <el-table-column prop="grade" label="年级" width="90" />
-            <el-table-column prop="academic_year" label="学年" width="120" />
-            <el-table-column prop="status_display" label="状态" width="90" />
-            <el-table-column label="操作" fixed="right" width="90">
-              <template #default="{ row }">
-                <el-button text type="primary" @click="openEditClassDialog(row)">编辑</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <div class="gm-pagination">
-            <el-pagination
-              v-model:current-page="classFilters.page"
-              v-model:page-size="classFilters.page_size"
-              layout="prev, pager, next, sizes"
-              :total="classTotal"
-            />
-          </div>
+          <TableSurface>
+            <template #toolbar>
+              <div class="gm-filter-row">
+                <el-input v-model="classFilters.keyword" placeholder="搜索班级名称" clearable />
+                <el-select v-model="classFilters.status" placeholder="状态">
+                  <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
+                </el-select>
+              </div>
+              <div class="gm-toolbar">
+                <button class="gm-action-button" type="button" @click="openCreateClassDialog">新增班级</button>
+              </div>
+            </template>
+
+            <el-table v-loading="classLoading" border class="gm-data-table" :data="classRows" empty-text="暂无班级">
+              <el-table-column prop="name" label="班级" />
+              <el-table-column prop="grade" label="年级" width="90" />
+              <el-table-column prop="academic_year" label="学年" width="120" />
+              <el-table-column prop="status_display" label="状态" width="90" />
+              <el-table-column label="操作" fixed="right" width="90">
+                <template #default="{ row }">
+                  <el-button text type="primary" @click="openEditClassDialog(row)">编辑</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+
+            <template #pagination>
+              <TablePagination v-model:current-page="classFilters.page" v-model:page-size="classFilters.page_size" :total="classTotal" />
+            </template>
+          </TableSurface>
         </el-tab-pane>
 
         <el-tab-pane label="学生管理" name="students">
           <div class="gm-section-title">
             <h2>学生列表</h2>
-            <div class="gm-toolbar">
-              <el-upload
-                v-model:file-list="uploadFiles"
-                :http-request="uploadStudents"
-                :show-file-list="false"
-                name="file"
-              >
-                <button class="gm-action-button" type="button">导入学生</button>
-              </el-upload>
-              <button class="gm-action-button is-primary" type="button" @click="openCreateStudentDialog">新增学生</button>
-            </div>
           </div>
 
-          <div class="gm-filter-row gm-filter-row-wide">
-            <el-input v-model="studentFilters.keyword" placeholder="搜索学号或姓名" clearable />
-            <el-select v-model="studentFilters.status" placeholder="状态">
-              <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
-            </el-select>
-            <el-select v-model="studentFilters.class_id" placeholder="所属班级" clearable>
-              <el-option v-for="item in classOptions" :key="item.id" :label="item.name" :value="item.id" />
-            </el-select>
-          </div>
+          <TableSurface>
+            <template #toolbar>
+              <div class="gm-filter-row gm-filter-row-wide">
+                <el-input v-model="studentFilters.keyword" placeholder="搜索学号或姓名" clearable />
+                <el-select v-model="studentFilters.status" placeholder="状态">
+                  <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
+                </el-select>
+                <el-select v-model="studentFilters.class_id" placeholder="所属班级" clearable>
+                  <el-option v-for="item in classOptions" :key="item.id" :label="item.name" :value="item.id" />
+                </el-select>
+              </div>
+              <div class="gm-toolbar">
+                <button class="gm-action-button" type="button" @click="studentImportVisible = true">导入学生</button>
+                <button class="gm-action-button is-primary" type="button" @click="openCreateStudentDialog">新增学生</button>
+              </div>
+            </template>
 
-          <ImportResultPanel :result="importResult" />
+            <el-table v-loading="studentLoading" border class="gm-data-table" :data="studentRows" empty-text="暂无学生">
+              <el-table-column prop="student_no" label="学号" width="120" />
+              <el-table-column prop="name" label="姓名" width="110" />
+              <el-table-column prop="class_display" label="班级" />
+              <el-table-column prop="status_display" label="状态" width="90" />
+              <el-table-column prop="remark" label="备注" />
+              <el-table-column label="操作" fixed="right" width="90">
+                <template #default="{ row }">
+                  <el-button text type="primary" @click="openEditStudentDialog(row)">编辑</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
 
-          <el-table v-loading="studentLoading" border class="gm-data-table" :data="studentRows" empty-text="暂无学生">
-            <el-table-column prop="student_no" label="学号" width="120" />
-            <el-table-column prop="name" label="姓名" width="110" />
-            <el-table-column prop="class_display" label="班级" />
-            <el-table-column prop="status_display" label="状态" width="90" />
-            <el-table-column prop="remark" label="备注" />
-            <el-table-column label="操作" fixed="right" width="90">
-              <template #default="{ row }">
-                <el-button text type="primary" @click="openEditStudentDialog(row)">编辑</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <div class="gm-pagination">
-            <el-pagination
-              v-model:current-page="studentFilters.page"
-              v-model:page-size="studentFilters.page_size"
-              layout="prev, pager, next, sizes"
-              :total="studentTotal"
-            />
-          </div>
+            <template #pagination>
+              <TablePagination v-model:current-page="studentFilters.page" v-model:page-size="studentFilters.page_size" :total="studentTotal" />
+            </template>
+          </TableSurface>
         </el-tab-pane>
       </el-tabs>
     </section>
 
-    <el-dialog v-model="classDialogVisible" title="班级信息" width="520px">
+    <ImportUploadDialog
+      v-model="studentImportVisible"
+      v-model:option-value="studentImportUpdateExisting"
+      title="导入学生"
+      context-label="目标班级"
+      :context-value="selectedStudentClassName || '请先在学生列表筛选所属班级'"
+      :context-warning="!studentFilters.class_id"
+      option-label="更新已有学生"
+      :option-disabled="studentImportUploading"
+      :upload-disabled="studentImportUploading"
+      :uploading="studentImportUploading"
+      upload-idle-text="拖拽学生名单文件到这里"
+      :http-request="uploadStudents"
+      @download="downloadTemplate"
+    >
+      <ImportResultPanel :result="importResult" />
+    </ImportUploadDialog>
+
+    <el-dialog v-model="classDialogVisible" title="班级信息" width="520px" @closed="handleClassDialogClosed">
       <el-form ref="classFormRef" :model="classForm" :rules="classRules" label-width="88px">
         <el-form-item label="班级名称" prop="name" required>
           <el-input v-model="classForm.name" />
@@ -513,7 +551,7 @@ onMounted(async () => {
       </template>
     </el-dialog>
 
-    <el-dialog v-model="studentDialogVisible" title="学生信息" width="560px">
+    <el-dialog v-model="studentDialogVisible" title="学生信息" width="560px" @closed="handleStudentDialogClosed">
       <el-form ref="studentFormRef" :model="studentForm" :rules="studentRules" label-width="88px">
         <el-form-item label="学号" prop="student_no" required>
           <el-input v-model="studentForm.student_no" />

@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { TodayScheduleRecord } from '../../api/dashboard'
 
-defineProps<{
+const props = defineProps<{
   schedules: TodayScheduleRecord[]
 }>()
+
+const MAX_VISIBLE_SCHEDULES = 5
+const visibleSchedules = computed(() => props.schedules.slice(0, MAX_VISIBLE_SCHEDULES))
 </script>
 
 <template>
@@ -13,7 +17,7 @@ defineProps<{
     </div>
     <el-empty v-if="!schedules.length" description="今日暂无课程" :image-size="64" />
     <div v-else class="gm-stack-list">
-      <article v-for="schedule in schedules" :key="schedule.id" class="gm-list-row">
+      <article v-for="schedule in visibleSchedules" :key="schedule.id" class="gm-list-row">
         <div>
           <strong>第 {{ schedule.period_no || '-' }} 节</strong>
           <span>{{ schedule.course_name || '未命名课程' }}</span>

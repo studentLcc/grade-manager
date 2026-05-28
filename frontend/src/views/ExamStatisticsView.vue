@@ -13,6 +13,8 @@ import {
   type StatisticsSummary,
   type StudentListItem,
 } from '../api/statistics'
+import TablePagination from '../components/common/TablePagination.vue'
+import TableSurface from '../components/common/TableSurface.vue'
 
 interface DisplayItem {
   label: string
@@ -34,6 +36,8 @@ const classes = ref<ClassRecord[]>([])
 const summary = ref<StatisticsSummary>({} as StatisticsSummary)
 const rankings = ref<RankingRecord[]>([])
 const segments = ref<SegmentRecord[]>([])
+const rankingTotal = ref(0)
+const segmentTotal = ref(0)
 const activeStatsTab = ref<StatsTabKey>('overview')
 const activeExceptionType = ref<ExceptionType>('absent')
 let routeVersion = 0
@@ -50,6 +54,16 @@ const filters = reactive({
   exam_subject_id: undefined as number | undefined,
   segment_step: 10,
   class_id: undefined as number | undefined,
+})
+
+const rankingPagination = reactive({
+  page: 1,
+  page_size: 20,
+})
+
+const segmentPagination = reactive({
+  page: 1,
+  page_size: 20,
 })
 
 const statusOptions = [
@@ -129,6 +143,8 @@ function rankingParams() {
     class_id: filters.class_id,
     exam_subject_id: filters.ranking_type === 'subject' ? filters.exam_subject_id : undefined,
     rank_type: filters.ranking_type,
+    page: rankingPagination.page,
+    page_size: rankingPagination.page_size,
   })
 }
 
@@ -139,6 +155,8 @@ function segmentParams() {
     exam_subject_id: filters.segment_type === 'subject' ? filters.exam_subject_id : undefined,
     type: filters.segment_type,
     step: filters.segment_step,
+    page: segmentPagination.page,
+    page_size: segmentPagination.page_size,
   })
 }
 
@@ -209,6 +227,9 @@ async function loadRankings() {
     const rankingResponse = await getExamRankings(targetExamId, rankingParams())
     if (requestId !== rankingRequestSeq || routeVersion !== targetVersion || examId.value !== targetExamId) return
     rankings.value = rankingResponse.data.items
+    rankingTotal.value = rankingResponse.data.total
+    rankingPagination.page = rankingResponse.data.page
+    rankingPagination.page_size = rankingResponse.data.page_size
   } catch {
     // Global http interceptor shows the user-facing error.
   } finally {
@@ -227,11 +248,30 @@ async function loadSegments() {
     const segmentResponse = await getExamSegments(targetExamId, segmentParams())
     if (requestId !== segmentRequestSeq || routeVersion !== targetVersion || examId.value !== targetExamId) return
     segments.value = segmentResponse.data.items
+    segmentTotal.value = segmentResponse.data.total
+    segmentPagination.page = segmentResponse.data.page
+    segmentPagination.page_size = segmentResponse.data.page_size
   } catch {
     // Global http interceptor shows the user-facing error.
   } finally {
     if (requestId === segmentRequestSeq) segmentsLoading.value = false
   }
+}
+
+function resetRankingPageAndLoad() {
+  if (rankingPagination.page !== 1) {
+    rankingPagination.page = 1
+    return
+  }
+  loadRankings()
+}
+
+function resetSegmentPageAndLoad() {
+  if (segmentPagination.page !== 1) {
+    segmentPagination.page = 1
+    return
+  }
+  loadSegments()
 }
 
 function setStatsTab(tab: StatsTabKey) {
@@ -247,8 +287,14 @@ function resetExamState() {
   summary.value = {} as StatisticsSummary
   rankings.value = []
   segments.value = []
-  filters.exam_subject_id = undefined
   activeStatsTab.value = 'overview'
+  rankingTotal.value = 0
+  segmentTotal.value = 0
+  rankingPagination.page = 1
+  rankingPagination.page_size = 20
+  segmentPagination.page = 1
+  segmentPagination.page_size = 20
+  filters.exam_subject_id = undefined
   activeExceptionType.value = 'absent'
   loadedBaseExamId = null
 }
@@ -265,20 +311,34 @@ watch(
   () => filters.included_statuses.join(','),
   () => {
     loadSummary()
-    if (activeStatsTab.value === 'rankings') loadRankings()
-    if (activeStatsTab.value === 'segments') loadSegments()
+    if (activeStatsTab.value === 'rankings') resetRankingPageAndLoad()
+    if (activeStatsTab.value === 'segments') resetSegmentPageAndLoad()
   },
 )
 
 watch(
   () => [filters.ranking_type, filters.exam_subject_id, filters.class_id],
   () => {
-    if (activeStatsTab.value === 'rankings') loadRankings()
+    if (activeStatsTab.value === 'rankings') resetRankingPageAndLoad()
   },
 )
 
 watch(
   () => [filters.segment_type, filters.exam_subject_id, filters.segment_step, filters.class_id],
+  () => {
+    if (activeStatsTab.value === 'segments') resetSegmentPageAndLoad()
+  },
+)
+
+watch(
+  () => [rankingPagination.page, rankingPagination.page_size],
+  () => {
+    if (activeStatsTab.value === 'rankings') loadRankings()
+  },
+)
+
+watch(
+  () => [segmentPagination.page, segmentPagination.page_size],
   () => {
     if (activeStatsTab.value === 'segments') loadSegments()
   },
@@ -359,77 +419,100 @@ onMounted(() => {
       <div class="gm-section-title">
         <h2>排名</h2>
       </div>
-      <div class="gm-filter-row gm-filter-row-wide gm-stats-inner-filter">
-        <el-select v-model="filters.ranking_type" placeholder="排名类型">
-          <el-option label="总分排名" value="total" />
-          <el-option label="单科排名" value="subject" />
-        </el-select>
-        <el-select v-if="shouldShowRankingSubject" v-model="filters.exam_subject_id" placeholder="排名科目" clearable>
-          <el-option v-for="subject in subjectOptions" :key="subject.id" :label="subject.course_name || '未命名科目'" :value="subject.id" />
-        </el-select>
-        <el-select v-model="filters.class_id" placeholder="排名班级" clearable>
-          <el-option v-for="classRecord in classes" :key="classRecord.id" :label="classRecord.name" :value="classRecord.id" />
-        </el-select>
-      </div>
-      <el-table v-loading="rankingsLoading" border class="gm-data-table" :data="rankings" empty-text="暂无排名数据">
-        <el-table-column prop="rank" label="排名" width="80" />
-        <el-table-column prop="name" label="学生" />
-        <el-table-column prop="student_no" label="学号" />
-        <el-table-column prop="class_name" label="班级" />
-        <el-table-column prop="score" label="成绩" />
-      </el-table>
+      <TableSurface>
+        <template #toolbar>
+          <div class="gm-filter-row gm-filter-row-wide gm-stats-inner-filter">
+            <el-select v-model="filters.ranking_type" placeholder="排名类型">
+              <el-option label="总分排名" value="total" />
+              <el-option label="单科排名" value="subject" />
+            </el-select>
+            <el-select v-if="shouldShowRankingSubject" v-model="filters.exam_subject_id" placeholder="排名科目" clearable>
+              <el-option v-for="subject in subjectOptions" :key="subject.id" :label="subject.course_name || '未命名科目'" :value="subject.id" />
+            </el-select>
+            <el-select v-model="filters.class_id" placeholder="排名班级" clearable>
+              <el-option v-for="classRecord in classes" :key="classRecord.id" :label="classRecord.name" :value="classRecord.id" />
+            </el-select>
+          </div>
+        </template>
+
+        <el-table v-loading="rankingsLoading" border class="gm-data-table" :data="rankings" empty-text="暂无排名数据">
+          <el-table-column prop="rank" label="排名" width="80" />
+          <el-table-column prop="name" label="学生" />
+          <el-table-column prop="student_no" label="学号" />
+          <el-table-column prop="class_name" label="班级" />
+          <el-table-column prop="score" label="成绩" />
+        </el-table>
+
+        <template #pagination>
+          <TablePagination v-model:current-page="rankingPagination.page" v-model:page-size="rankingPagination.page_size" :total="rankingTotal" />
+        </template>
+      </TableSurface>
     </section>
 
     <section v-else-if="activeStatsTab === 'segments'" class="gm-page-card gm-segment-section">
       <div class="gm-section-title">
         <h2>分数段</h2>
       </div>
-      <div class="gm-filter-row gm-filter-row-wide gm-stats-inner-filter">
-        <el-select v-model="filters.segment_type" placeholder="分段类型">
-          <el-option label="总分分段" value="total" />
-          <el-option label="单科分段" value="subject" />
-        </el-select>
-        <el-select v-if="shouldShowSegmentSubject" v-model="filters.exam_subject_id" placeholder="分段科目" clearable>
-          <el-option v-for="subject in subjectOptions" :key="subject.id" :label="subject.course_name || '未命名科目'" :value="subject.id" />
-        </el-select>
-        <el-input-number v-model="filters.segment_step" :min="1" :max="100" controls-position="right" />
-        <el-select v-model="filters.class_id" placeholder="分段班级" clearable>
-          <el-option v-for="classRecord in classes" :key="classRecord.id" :label="classRecord.name" :value="classRecord.id" />
-        </el-select>
-      </div>
-      <el-table v-loading="segmentsLoading" border class="gm-data-table" :data="segments" empty-text="暂无分段数据">
-        <el-table-column prop="label" label="分段" />
-        <el-table-column prop="start" label="起始分" width="100" />
-        <el-table-column prop="end" label="结束分" width="100" />
-        <el-table-column prop="count" label="人数" width="100" />
-      </el-table>
+      <TableSurface>
+        <template #toolbar>
+          <div class="gm-filter-row gm-filter-row-wide gm-stats-inner-filter">
+            <el-select v-model="filters.segment_type" placeholder="分段类型">
+              <el-option label="总分分段" value="total" />
+              <el-option label="单科分段" value="subject" />
+            </el-select>
+            <el-select v-if="shouldShowSegmentSubject" v-model="filters.exam_subject_id" placeholder="分段科目" clearable>
+              <el-option v-for="subject in subjectOptions" :key="subject.id" :label="subject.course_name || '未命名科目'" :value="subject.id" />
+            </el-select>
+            <el-input-number v-model="filters.segment_step" :min="1" :max="100" controls-position="right" />
+            <el-select v-model="filters.class_id" placeholder="分段班级" clearable>
+              <el-option v-for="classRecord in classes" :key="classRecord.id" :label="classRecord.name" :value="classRecord.id" />
+            </el-select>
+          </div>
+        </template>
+
+        <el-table v-loading="segmentsLoading" border class="gm-data-table" :data="segments" empty-text="暂无分段数据">
+          <el-table-column prop="label" label="分段" />
+          <el-table-column prop="start" label="起始分" width="100" />
+          <el-table-column prop="end" label="结束分" width="100" />
+          <el-table-column prop="count" label="人数" width="100" />
+        </el-table>
+
+        <template #pagination>
+          <TablePagination v-model:current-page="segmentPagination.page" v-model:page-size="segmentPagination.page_size" :total="segmentTotal" />
+        </template>
+      </TableSurface>
     </section>
 
     <section v-else class="gm-page-card gm-exception-section">
       <div class="gm-section-title">
         <h2>异常与缺失</h2>
       </div>
-      <div class="gm-exception-tabs" role="tablist" aria-label="异常类型">
-        <button
-          v-for="item in exceptionOptions"
-          :key="item.value"
-          type="button"
-          class="gm-exception-type-chip"
-          :class="{ 'is-active': activeExceptionType === item.value }"
-          role="tab"
-          :aria-selected="activeExceptionType === item.value"
-          @click="activeExceptionType = item.value"
-        >
-          <span>{{ item.label }}</span>
-          <strong>{{ item.count }}</strong>
-        </button>
-      </div>
-      <el-table border class="gm-data-table" :class="'gm-exception-table'" :data="activeExceptionRows" empty-text="暂无记录">
-        <el-table-column prop="name" label="学生" />
-        <el-table-column prop="student_no" label="学号" />
-        <el-table-column prop="class_name" label="班级" />
-        <el-table-column prop="course_name" label="科目" />
-      </el-table>
+      <TableSurface>
+        <template #toolbar>
+          <div class="gm-exception-tabs" role="tablist" aria-label="异常类型">
+            <button
+              v-for="item in exceptionOptions"
+              :key="item.value"
+              type="button"
+              class="gm-exception-type-chip"
+              :class="{ 'is-active': activeExceptionType === item.value }"
+              role="tab"
+              :aria-selected="activeExceptionType === item.value"
+              @click="activeExceptionType = item.value"
+            >
+              <span>{{ item.label }}</span>
+              <strong>{{ item.count }}</strong>
+            </button>
+          </div>
+        </template>
+
+        <el-table border class="gm-data-table" :class="'gm-exception-table'" :data="activeExceptionRows" empty-text="暂无记录">
+          <el-table-column prop="name" label="学生" />
+          <el-table-column prop="student_no" label="学号" />
+          <el-table-column prop="class_name" label="班级" />
+          <el-table-column prop="course_name" label="科目" />
+        </el-table>
+      </TableSurface>
     </section>
   </section>
 </template>

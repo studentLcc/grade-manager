@@ -6,6 +6,7 @@ import ClassAverageTrend from '../src/components/dashboard/ClassAverageTrend.vue
 import MetricCard from '../src/components/dashboard/MetricCard.vue'
 import RecentExams from '../src/components/dashboard/RecentExams.vue'
 import ScoreOverviewCard from '../src/components/dashboard/ScoreOverviewCard.vue'
+import TodaySchedule from '../src/components/dashboard/TodaySchedule.vue'
 import DashboardView from '../src/views/DashboardView.vue'
 import ExamStatisticsView from '../src/views/ExamStatisticsView.vue'
 import StatisticsView from '../src/views/StatisticsView.vue'
@@ -254,6 +255,21 @@ describe('score overview card', () => {
     expect(wrapper.emitted('update:selectedAcademicYear')?.[0]).toEqual(['2025-2026'])
   })
 
+  it('marks empty class average trend cards for compact adaptive layout', () => {
+    const wrapper = mount(ClassAverageTrend, {
+      props: {
+        points: [],
+        academicYears: ['2026-2027'],
+        selectedAcademicYear: '2026-2027',
+      },
+      global: { stubs: globalStubs },
+    })
+
+    expect(wrapper.find('.gm-dashboard-analysis-card').classes()).toContain('is-empty')
+    expect(wrapper.text()).toContain('暂无趋势数据')
+    expect(wrapper.find('.gm-trend-class-strip').exists()).toBe(false)
+  })
+
   it('uses readable trend axis labels for academic-year prefixed exam names', () => {
     const wrapper = mount(ClassAverageTrend, {
       props: {
@@ -295,6 +311,32 @@ describe('score overview card', () => {
     expect(rows[1].find('span').text()).toBe('其他考试')
     expect(rows[1].text()).not.toContain('期末考试')
     expect(rows[0].find('div').exists()).toBe(false)
+  })
+
+  it('keeps today schedule compact and limited to the first five records', () => {
+    const wrapper = mount(TodaySchedule, {
+      props: {
+        schedules: Array.from({ length: 7 }, (_, index) => ({
+          id: index + 1,
+          class_id: index + 1,
+          class_name: `演示 ${index + 1} 班`,
+          course_id: index + 1,
+          course_name: `课程 ${index + 1}`,
+          weekday: 1,
+          period_no: index + 1,
+          start_time: null,
+          end_time: null,
+          location: null,
+        })),
+      },
+      global: { stubs: globalStubs },
+    })
+
+    const rows = wrapper.findAll('.gm-list-row')
+    expect(rows).toHaveLength(5)
+    expect(wrapper.text()).toContain('课程 1')
+    expect(wrapper.text()).toContain('课程 5')
+    expect(wrapper.text()).not.toContain('课程 6')
   })
 
   it('renders dashboard list data from backend items wrappers', async () => {
@@ -550,10 +592,8 @@ describe('score overview card', () => {
         })
       }
       if (url === '/statistics/exams/9/rankings') {
-        expect(config?.params).toMatchObject({ rank_type: 'total' })
+        expect(config?.params).toMatchObject({ rank_type: 'total', page: 1, page_size: 20 })
         expect(config?.params).not.toHaveProperty('ranking_type')
-        expect(config?.params).not.toHaveProperty('page')
-        expect(config?.params).not.toHaveProperty('page_size')
         return Promise.resolve({
           data: {
             exam: { id: 9, name: '期中考试' },
@@ -561,12 +601,15 @@ describe('score overview card', () => {
             rank_type: 'total',
             exam_subject_id: null,
             class_id: null,
+            total: 1,
+            page: 1,
+            page_size: 20,
             items: [{ rank: 1, exam_student_id: 21, student_id: 1, student_no: 'S001', name: '张三', class_id: 1, class_name: '一班', score: '99.00' }],
           },
         })
       }
       if (url === '/statistics/exams/9/segments') {
-        expect(config?.params).toMatchObject({ type: 'total', step: 10 })
+        expect(config?.params).toMatchObject({ type: 'total', step: 10, page: 1, page_size: 20 })
         expect(config?.params).not.toHaveProperty('segment_type')
         return Promise.resolve({
           data: {
@@ -575,6 +618,9 @@ describe('score overview card', () => {
             type: 'total',
             exam_subject_id: null,
             step: 10,
+            total: 1,
+            page: 1,
+            page_size: 20,
             items: [{ label: '90-100', start: '90.00', end: '100.00', count: 1 }],
           },
         })
@@ -601,9 +647,9 @@ describe('score overview card', () => {
     await wrapper.findAll('.gm-stats-tab')[1].trigger('click')
     await flushPromises()
 
-    expect(get).toHaveBeenCalledWith('/statistics/exams/9/rankings', expect.objectContaining({ params: expect.objectContaining({ rank_type: 'total' }) }))
-    expect(get).toHaveBeenCalledWith('/statistics/exams/9/rankings', expect.objectContaining({ params: expect.not.objectContaining({ page: expect.anything() }) }))
+    expect(get).toHaveBeenCalledWith('/statistics/exams/9/rankings', expect.objectContaining({ params: expect.objectContaining({ rank_type: 'total', page: 1, page_size: 20 }) }))
     expect(wrapper.find('.gm-ranking-section').exists()).toBe(true)
+    expect(wrapper.find('.gm-ranking-section .gm-pagination').exists()).toBe(true)
     expect(wrapper.find('.gm-overview-section').exists()).toBe(false)
     expect(wrapper.text()).toContain('张三')
     expect(wrapper.text()).toContain('99.00')
@@ -611,8 +657,9 @@ describe('score overview card', () => {
     await wrapper.findAll('.gm-stats-tab')[2].trigger('click')
     await flushPromises()
 
-    expect(get).toHaveBeenCalledWith('/statistics/exams/9/segments', expect.objectContaining({ params: expect.objectContaining({ type: 'total', step: 10 }) }))
+    expect(get).toHaveBeenCalledWith('/statistics/exams/9/segments', expect.objectContaining({ params: expect.objectContaining({ type: 'total', step: 10, page: 1, page_size: 20 }) }))
     expect(wrapper.find('.gm-segment-section').exists()).toBe(true)
+    expect(wrapper.find('.gm-segment-section .gm-pagination').exists()).toBe(true)
     expect(wrapper.find('.gm-ranking-section').exists()).toBe(false)
     expect(wrapper.text()).toContain('90-100')
 
@@ -673,11 +720,11 @@ describe('score overview card', () => {
       }
       if (url === `/statistics/exams/${id}/rankings`) {
         expect(config?.params).not.toHaveProperty('exam_subject_id')
-        return Promise.resolve({ data: { exam: { id, name: '考试' }, included_statuses: ['normal'], rank_type: 'total', exam_subject_id: null, class_id: null, items: [] } })
+        return Promise.resolve({ data: { exam: { id, name: '考试' }, included_statuses: ['normal'], rank_type: 'total', exam_subject_id: null, class_id: null, total: 0, page: 1, page_size: 20, items: [] } })
       }
       if (url === `/statistics/exams/${id}/segments`) {
         expect(config?.params).not.toHaveProperty('exam_subject_id')
-        return Promise.resolve({ data: { exam: { id, name: '考试' }, included_statuses: ['normal'], type: 'total', exam_subject_id: null, step: 10, items: [] } })
+        return Promise.resolve({ data: { exam: { id, name: '考试' }, included_statuses: ['normal'], type: 'total', exam_subject_id: null, step: 10, total: 0, page: 1, page_size: 20, items: [] } })
       }
       return Promise.resolve({ data: {} })
     })
@@ -736,10 +783,10 @@ describe('score overview card', () => {
         })
       }
       if (url === `/statistics/exams/${id}/rankings`) {
-        return Promise.resolve({ data: { exam: { id, name: '考试' }, included_statuses: ['normal'], rank_type: 'total', exam_subject_id: null, class_id: null, items: [] } })
+        return Promise.resolve({ data: { exam: { id, name: '考试' }, included_statuses: ['normal'], rank_type: 'total', exam_subject_id: null, class_id: null, total: 0, page: 1, page_size: 20, items: [] } })
       }
       if (url === `/statistics/exams/${id}/segments`) {
-        return Promise.resolve({ data: { exam: { id, name: '考试' }, included_statuses: ['normal'], type: 'total', exam_subject_id: null, step: 10, items: [] } })
+        return Promise.resolve({ data: { exam: { id, name: '考试' }, included_statuses: ['normal'], type: 'total', exam_subject_id: null, step: 10, total: 0, page: 1, page_size: 20, items: [] } })
       }
       return Promise.resolve({ data: {} })
     })
@@ -811,13 +858,13 @@ describe('score overview card', () => {
         if (config?.params?.rank_type === 'subject') {
           expect(config.params.exam_subject_id).toBe(11)
         }
-        return Promise.resolve({ data: { exam: { id: 9, name: '考试' }, included_statuses: ['normal'], rank_type: config?.params?.rank_type || 'total', exam_subject_id: config?.params?.exam_subject_id || null, class_id: null, items: [] } })
+        return Promise.resolve({ data: { exam: { id: 9, name: '考试' }, included_statuses: ['normal'], rank_type: config?.params?.rank_type || 'total', exam_subject_id: config?.params?.exam_subject_id || null, class_id: null, total: 0, page: Number(config?.params?.page || 1), page_size: Number(config?.params?.page_size || 20), items: [] } })
       }
       if (url === '/statistics/exams/9/segments') {
         if (config?.params?.type === 'subject') {
           expect(config.params.exam_subject_id).toBe(11)
         }
-        return Promise.resolve({ data: { exam: { id: 9, name: '考试' }, included_statuses: ['normal'], type: config?.params?.type || 'total', exam_subject_id: config?.params?.exam_subject_id || null, step: 10, items: [] } })
+        return Promise.resolve({ data: { exam: { id: 9, name: '考试' }, included_statuses: ['normal'], type: config?.params?.type || 'total', exam_subject_id: config?.params?.exam_subject_id || null, step: 10, total: 0, page: Number(config?.params?.page || 1), page_size: Number(config?.params?.page_size || 20), items: [] } })
       }
       return Promise.resolve({ data: {} })
     })

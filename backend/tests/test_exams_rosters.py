@@ -173,7 +173,7 @@ def test_exam_rejects_invalid_threshold_order(client):
     assert response.json()["details"][0]["field"] == "subjects.pass_score"
 
 
-def test_roster_refresh_appends_after_scoring_without_rewriting_existing_rows(client):
+def test_score_sheet_preserves_created_roster_after_scoring(client):
     headers, class_id, course_id, student_id = seed_base(client)
     exam = client.post(
         "/api/v1/exams",
@@ -213,9 +213,56 @@ def test_roster_refresh_appends_after_scoring_without_rewriting_existing_rows(cl
         json={"class_id": class_id, "student_no": "S002", "name": "李四"},
     )
     second_sheet = client.get(f"/api/v1/exams/{exam['id']}/score-sheet", headers=headers).json()
-    assert len(second_sheet["students"]) == 2
-    original = [row for row in second_sheet["students"] if row["student_id"] == student_id][0]
+    assert [row["student_id"] for row in second_sheet["students"]] == [student_id]
+    original = second_sheet["students"][0]
     assert original["exam_student_id"] == exam_student_id
+
+
+def test_score_template_preserves_created_roster_after_scoring(client):
+    headers, class_id, course_id, student_id = seed_base(client)
+    exam = client.post(
+        "/api/v1/exams",
+        headers=headers,
+        json={
+            "name": "期中考试",
+            "exam_type": "school",
+            "term": "2026-2027-1",
+            "class_ids": [class_id],
+            "subjects": [{"course_id": course_id, "full_score": "100", "pass_score": "60", "excellent_score": "90"}],
+        },
+    ).json()
+    first_sheet = client.get(f"/api/v1/exams/{exam['id']}/score-sheet", headers=headers).json()
+    exam_student_id = first_sheet["students"][0]["exam_student_id"]
+    exam_subject_id = first_sheet["subjects"][0]["exam_subject_id"]
+
+    save = client.put(
+        f"/api/v1/exams/{exam['id']}/scores",
+        headers=headers,
+        json={
+            "items": [
+                {
+                    "exam_student_id": exam_student_id,
+                    "exam_subject_id": exam_subject_id,
+                    "score": "88",
+                    "score_status": "normal",
+                    "remark": "",
+                }
+            ]
+        },
+    )
+    assert save.status_code == 200
+
+    client.post(
+        "/api/v1/students",
+        headers=headers,
+        json={"class_id": class_id, "student_no": "S002", "name": "李四"},
+    )
+    template = client.get(f"/api/v1/exams/{exam['id']}/score-template", headers=headers)
+    assert template.status_code == 200
+
+    second_sheet = client.get(f"/api/v1/exams/{exam['id']}/score-sheet", headers=headers).json()
+    assert [row["student_id"] for row in second_sheet["students"]] == [student_id]
+    assert second_sheet["students"][0]["exam_student_id"] == exam_student_id
 
 
 def test_readding_removed_unscored_class_reactivates_existing_roster_rows(client):

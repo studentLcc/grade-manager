@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import type { UploadRequestOptions } from 'element-plus'
+import ImportResultPanel from '../imports/ImportResultPanel.vue'
+import ImportUploadDialog from '../imports/ImportUploadDialog.vue'
+import { downloadBlob } from '../../utils/download'
 import {
   downloadScoreTemplate,
   importScores,
@@ -13,6 +16,7 @@ const props = defineProps<{
   modelValue: boolean
   examId: number
   classId?: number | null
+  className?: string | null
   disabled?: boolean
 }>()
 
@@ -24,34 +28,19 @@ const emit = defineEmits<{
 const result = ref<ScoreImportResult | null>(null)
 const errors = ref<ImportErrorRecord[]>([])
 const uploading = ref(false)
+const overwriteExisting = ref(false)
 let uploadSequence = 0
 const visible = computed({
   get: () => props.modelValue,
   set: (value: boolean) => emit('update:modelValue', value),
 })
-
-const importStatusLabels: Record<string, string> = {
-  pending: '待处理',
-  processing: '处理中',
-  success: '成功',
-  partial_success: '部分成功',
-  failed: '失败',
-}
-
-function statusLabel(status: string) {
-  return importStatusLabels[status] || '未知状态'
-}
+const importScope = computed(() => props.className || (props.classId ? `班级 ${props.classId}` : '全部班级'))
 
 async function downloadTemplate() {
   if (props.disabled) return
   try {
     const { data } = await downloadScoreTemplate(props.examId, props.classId || undefined)
-    const url = URL.createObjectURL(data)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `exam-${props.examId}-score-template.xlsx`
-    link.click()
-    URL.revokeObjectURL(url)
+    downloadBlob(data, `exam-${props.examId}-score-template.xlsx`)
   } catch {
     // Global http interceptor shows the user-facing error.
   }
@@ -65,7 +54,7 @@ async function uploadScoreFile(options: UploadRequestOptions) {
   result.value = null
   errors.value = []
   try {
-    const { data } = await importScores(uploadExamId, options.file)
+    const { data } = await importScores(uploadExamId, options.file, overwriteExisting.value)
     if (sequence !== uploadSequence || uploadExamId !== props.examId) return
     result.value = data
     emit('imported', data)
@@ -97,29 +86,22 @@ watch(
 </script>
 
 <template>
-  <el-dialog v-model="visible" title="导入成绩" width="680px">
-    <div class="gm-import-actions">
-      <el-button :disabled="disabled" @click="downloadTemplate">下载模板</el-button>
-      <el-upload :http-request="uploadScoreFile" :disabled="disabled" :show-file-list="false" name="file">
-        <el-button type="primary" :loading="uploading" :disabled="disabled">上传成绩文件</el-button>
-      </el-upload>
-    </div>
-
-    <section v-if="result" class="gm-import-result">
-      <div>
-        <span>导入状态</span>
-        <strong>{{ statusLabel(result.status) }}</strong>
-      </div>
-      <div>
-        <span>成功</span>
-        <strong>{{ result.success_count }}</strong>
-      </div>
-      <div>
-        <span>失败</span>
-        <strong>{{ result.failed_count }}</strong>
-      </div>
-      <RouterLink v-if="result.batch_id" class="gm-import-link" :to="`/imports/${result.batch_id}`">查看导入详情</RouterLink>
-    </section>
+  <ImportUploadDialog
+    v-model="visible"
+    v-model:option-value="overwriteExisting"
+    title="导入成绩"
+    context-label="导入范围"
+    :context-value="importScope"
+    option-label="覆盖已有成绩"
+    :download-disabled="disabled"
+    :option-disabled="disabled || uploading"
+    :upload-disabled="disabled || uploading"
+    :uploading="uploading"
+    upload-idle-text="拖拽成绩文件到这里"
+    :http-request="uploadScoreFile"
+    @download="downloadTemplate"
+  >
+    <ImportResultPanel :result="result" />
 
     <el-table v-if="errors.length" border class="gm-data-table" :data="errors" empty-text="暂无错误">
       <el-table-column prop="row_number" label="行号" width="90" />
@@ -127,5 +109,5 @@ watch(
       <el-table-column prop="raw_value" label="原始值" width="140" />
       <el-table-column prop="reason" label="原因" />
     </el-table>
-  </el-dialog>
+  </ImportUploadDialog>
 </template>

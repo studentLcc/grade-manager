@@ -9,6 +9,7 @@ import {
   type ScoreSaveItem,
   type ScoreSheet,
 } from '../api/scores'
+import TableSurface from '../components/common/TableSurface.vue'
 import ScoreEntryTable from '../components/scores/ScoreEntryTable.vue'
 import ScoreImportDialog from '../components/scores/ScoreImportDialog.vue'
 
@@ -36,6 +37,10 @@ const modeOptions = [
   { label: '聚焦录入', value: 'focused' },
   { label: '整场总览', value: 'whole' },
 ]
+const selectedClassName = computed(() => {
+  if (!filters.class_id) return ''
+  return sheet.value?.classes.find((classRecord) => classRecord.id === filters.class_id)?.name || `班级 ${filters.class_id}`
+})
 
 async function loadSheet(id = examId.value) {
   const sequence = ++loadSequence
@@ -130,38 +135,50 @@ watch(examId, loadSheet, { immediate: true })
     </div>
 
     <section class="gm-page-card">
-      <div class="gm-filter-row gm-filter-row-wide">
-        <el-select v-model="filters.class_id" placeholder="班级" clearable>
-          <el-option v-for="classRecord in sheet?.classes || []" :key="classRecord.id" :label="classRecord.name" :value="classRecord.id" />
-        </el-select>
-        <el-select v-model="filters.subject_id" placeholder="科目" clearable>
-          <el-option
-            v-for="subject in sheet?.subjects || []"
-            :key="subject.exam_subject_id"
-            :label="subject.course_name || '未命名科目'"
-            :value="subject.exam_subject_id"
-          />
-        </el-select>
-        <el-segmented v-model="filters.mode" :options="modeOptions" />
-        <el-button @click="router.push(`/exam-center/${examId}`)">考试详情</el-button>
-      </div>
+      <TableSurface>
+        <template #toolbar>
+          <div class="gm-filter-row gm-filter-row-wide">
+            <el-select v-model="filters.class_id" placeholder="班级" clearable>
+              <el-option v-for="classRecord in sheet?.classes || []" :key="classRecord.id" :label="classRecord.name" :value="classRecord.id" />
+            </el-select>
+            <el-select v-model="filters.subject_id" placeholder="科目" clearable>
+              <el-option
+                v-for="subject in sheet?.subjects || []"
+                :key="subject.exam_subject_id"
+                :label="subject.course_name || '未命名科目'"
+                :value="subject.exam_subject_id"
+              />
+            </el-select>
+            <el-segmented v-model="filters.mode" :options="modeOptions" />
+            <el-button @click="router.push(`/exam-center/${examId}`)">考试详情</el-button>
+          </div>
+        </template>
 
-      <ScoreEntryTable
-        v-if="sheet"
-        :mode="filters.mode"
-        :class-id="filters.class_id"
-        :subject-id="filters.subject_id"
-        :students="sheet.students"
-        :subjects="sheet.subjects"
-        :scores="sheet.scores"
-        :failed-items="failedItems"
-        :saved-items="savedItems"
-        :disabled="saving || !isExamActive"
-        @change="handleTableChange"
-      />
-      <el-empty v-else description="暂无成绩单" />
+        <ScoreEntryTable
+          v-if="sheet"
+          :mode="filters.mode"
+          :class-id="filters.class_id"
+          :subject-id="filters.subject_id"
+          :students="sheet.students"
+          :subjects="sheet.subjects"
+          :scores="sheet.scores"
+          :failed-items="failedItems"
+          :saved-items="savedItems"
+          :disabled="saving || !isExamActive"
+          @change="handleTableChange"
+        />
+        <el-empty v-else description="暂无成绩单" />
+      </TableSurface>
     </section>
 
-    <ScoreImportDialog v-if="examId" v-model="importVisible" :exam-id="examId" :class-id="filters.class_id" :disabled="!isExamActive" @imported="reloadCurrentSheet" />
+    <ScoreImportDialog
+      v-if="examId"
+      v-model="importVisible"
+      :exam-id="examId"
+      :class-id="filters.class_id"
+      :class-name="selectedClassName"
+      :disabled="!isExamActive"
+      @imported="reloadCurrentSheet"
+    />
   </section>
 </template>

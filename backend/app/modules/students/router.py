@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, File, Path, Query, UploadFile
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -16,6 +17,7 @@ from app.modules.students.service import (
     list_students,
     update_student,
 )
+from app.modules.students.template_service import build_student_import_template
 
 router = APIRouter(prefix="/students", tags=["students"])
 
@@ -50,6 +52,18 @@ def import_(
     current_teacher: Teacher = Depends(get_current_teacher),
 ) -> dict[str, object]:
     return import_students(db, current_teacher, file, target_class_id, update_existing)
+
+
+@router.get("/import-template")
+def import_template(
+    _current_teacher: Teacher = Depends(get_current_teacher),
+) -> Response:
+    content = build_student_import_template()
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="student-import-template.xlsx"'},
+    )
 
 
 @router.post("", response_model=StudentRead, status_code=201)

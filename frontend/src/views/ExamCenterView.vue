@@ -3,6 +3,8 @@ import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { DataAnalysis, EditPen, UploadFilled, View } from '@element-plus/icons-vue'
 import { listExams, type ExamRecord } from '../api/exams'
+import TablePagination from '../components/common/TablePagination.vue'
+import TableSurface from '../components/common/TableSurface.vue'
 import ExamWizard from '../components/exams/ExamWizard.vue'
 
 const router = useRouter()
@@ -111,69 +113,73 @@ onMounted(loadExams)
     </div>
 
     <section class="gm-page-card">
-      <div class="gm-filter-row gm-filter-row-wide">
-        <el-input v-model="filters.keyword" placeholder="搜索考试名称" clearable />
-        <el-select v-model="filters.exam_type" placeholder="考试类型" clearable>
-          <el-option v-for="item in typeOptions" :key="item.value" :label="item.label" :value="item.value" />
-        </el-select>
-        <el-input v-model="filters.term" placeholder="学期" clearable />
-        <el-select v-model="filters.status" placeholder="状态">
-          <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
-        </el-select>
-      </div>
+      <TableSurface>
+        <template #toolbar>
+          <div class="gm-filter-row gm-filter-row-wide">
+            <el-input v-model="filters.keyword" placeholder="搜索考试名称" clearable />
+            <el-select v-model="filters.exam_type" placeholder="考试类型" clearable>
+              <el-option v-for="item in typeOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+            <el-input v-model="filters.term" placeholder="学期" clearable />
+            <el-select v-model="filters.status" placeholder="状态">
+              <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </div>
+        </template>
 
-      <el-table v-loading="loading" border class="gm-data-table" :data="exams" empty-text="暂无考试">
-        <el-table-column prop="name" label="考试名称" />
-        <el-table-column label="类型" width="120">
-          <template #default="{ row }">
-            {{ examTypeLabel(row.exam_type) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="term" label="学期" width="140" />
-        <el-table-column label="状态" width="90">
-          <template #default="{ row }">
-            {{ statusLabel(row.status) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="班级" min-width="160">
-          <template #default="{ row }">
-            {{ classNames(row) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="科目" min-width="160">
-          <template #default="{ row }">
-            {{ subjectNames(row) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" fixed="right" width="170" align="center" class-name="gm-operation-column">
-          <template #default="{ row }">
-            <div class="gm-table-actions gm-exam-actions" aria-label="考试操作">
-              <el-tooltip content="详情" placement="top">
-                <el-button class="gm-table-action" :icon="View" aria-label="详情" @click="router.push(`/exam-center/${row.id}`)" />
-              </el-tooltip>
-              <el-tooltip content="成绩录入" placement="top">
-                <el-button
-                  class="gm-table-action is-primary-action"
-                  type="primary"
-                  :icon="EditPen"
-                  aria-label="成绩录入"
-                  @click="router.push(`/exam-center/${row.id}/scores`)"
-                />
-              </el-tooltip>
-              <el-tooltip content="导入成绩" placement="top">
-                <el-button class="gm-table-action" :icon="UploadFilled" aria-label="导入成绩" @click="router.push(`/exam-center/${row.id}/scores?import=1`)" />
-              </el-tooltip>
-              <el-tooltip content="查看统计" placement="top">
-                <el-button class="gm-table-action" :icon="DataAnalysis" aria-label="查看统计" @click="router.push(`/exam-center/${row.id}/statistics`)" />
-              </el-tooltip>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
+        <el-table v-loading="loading" border class="gm-data-table" :data="exams" empty-text="暂无考试">
+          <el-table-column prop="name" label="考试名称" />
+          <el-table-column label="类型" width="120">
+            <template #default="{ row }">
+              {{ examTypeLabel(row.exam_type) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="term" label="学期" width="140" />
+          <el-table-column label="状态" width="90">
+            <template #default="{ row }">
+              {{ statusLabel(row.status) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="班级" min-width="160">
+            <template #default="{ row }">
+              {{ classNames(row) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="科目" min-width="160">
+            <template #default="{ row }">
+              {{ subjectNames(row) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" fixed="right" width="170" align="center" class-name="gm-operation-column">
+            <template #default="{ row }">
+              <div class="gm-table-actions gm-exam-actions" aria-label="考试操作">
+                <el-tooltip content="详情" placement="top">
+                  <el-button class="gm-table-action" :icon="View" aria-label="详情" @click="router.push(`/exam-center/${row.id}`)" />
+                </el-tooltip>
+                <el-tooltip content="成绩录入" placement="top">
+                  <el-button
+                    class="gm-table-action is-primary-action"
+                    type="primary"
+                    :icon="EditPen"
+                    aria-label="成绩录入"
+                    @click="router.push(`/exam-center/${row.id}/scores`)"
+                  />
+                </el-tooltip>
+                <el-tooltip content="导入成绩" placement="top">
+                  <el-button class="gm-table-action" :icon="UploadFilled" aria-label="导入成绩" @click="router.push(`/exam-center/${row.id}/scores?import=1`)" />
+                </el-tooltip>
+                <el-tooltip content="查看统计" placement="top">
+                  <el-button class="gm-table-action" :icon="DataAnalysis" aria-label="查看统计" @click="router.push(`/exam-center/${row.id}/statistics`)" />
+                </el-tooltip>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
 
-      <div class="gm-pagination">
-        <el-pagination v-model:current-page="filters.page" v-model:page-size="filters.page_size" layout="prev, pager, next, sizes" :total="total" />
-      </div>
+        <template #pagination>
+          <TablePagination v-model:current-page="filters.page" v-model:page-size="filters.page_size" :total="total" />
+        </template>
+      </TableSurface>
     </section>
 
     <el-dialog v-model="wizardVisible" title="创建考试" width="860px">

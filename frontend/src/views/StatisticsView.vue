@@ -2,6 +2,8 @@
 import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { listExams, type ExamRecord } from '../api/exams'
+import TablePagination from '../components/common/TablePagination.vue'
+import TableSurface from '../components/common/TableSurface.vue'
 
 const router = useRouter()
 const loading = ref(false)
@@ -92,36 +94,40 @@ onMounted(loadExams)
     </div>
 
     <section class="gm-page-card">
-      <div class="gm-filter-row gm-filter-row-wide">
-        <el-input v-model="filters.keyword" placeholder="搜索考试名称" clearable />
-        <el-select v-model="filters.exam_type" placeholder="考试类型" clearable>
-          <el-option v-for="item in typeOptions" :key="item.value" :label="item.label" :value="item.value" />
-        </el-select>
-        <el-input v-model="filters.term" placeholder="学期" clearable />
-      </div>
+      <TableSurface>
+        <template #toolbar>
+          <div class="gm-filter-row gm-filter-row-wide">
+            <el-input v-model="filters.keyword" placeholder="搜索考试名称" clearable />
+            <el-select v-model="filters.exam_type" placeholder="考试类型" clearable>
+              <el-option v-for="item in typeOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+            <el-input v-model="filters.term" placeholder="学期" clearable />
+          </div>
+        </template>
 
-      <el-table v-loading="loading" border class="gm-data-table" :data="exams" empty-text="暂无可查看统计的考试">
-        <el-table-column prop="name" label="考试名称" />
-        <el-table-column label="类型" width="120">
-          <template #default="{ row }">{{ examTypeLabel(row.exam_type) }}</template>
-        </el-table-column>
-        <el-table-column prop="term" label="学期" width="140" />
-        <el-table-column label="班级" min-width="160">
-          <template #default="{ row }">{{ classSummary(row) }}</template>
-        </el-table-column>
-        <el-table-column label="科目" min-width="160">
-          <template #default="{ row }">{{ subjectSummary(row) }}</template>
-        </el-table-column>
-        <el-table-column label="操作" fixed="right" width="130">
-          <template #default="{ row }">
-            <el-button text type="primary" @click="router.push(`/exam-center/${row.id}/statistics`)">查看统计</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+        <el-table v-loading="loading" border class="gm-data-table" :data="exams" empty-text="暂无可查看统计的考试">
+          <el-table-column prop="name" label="考试名称" />
+          <el-table-column label="类型" width="120">
+            <template #default="{ row }">{{ examTypeLabel(row.exam_type) }}</template>
+          </el-table-column>
+          <el-table-column prop="term" label="学期" width="140" />
+          <el-table-column label="班级" min-width="160">
+            <template #default="{ row }">{{ classSummary(row) }}</template>
+          </el-table-column>
+          <el-table-column label="科目" min-width="160">
+            <template #default="{ row }">{{ subjectSummary(row) }}</template>
+          </el-table-column>
+          <el-table-column label="操作" fixed="right" width="130">
+            <template #default="{ row }">
+              <el-button text type="primary" @click="router.push(`/exam-center/${row.id}/statistics`)">查看统计</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
 
-      <div class="gm-pagination">
-        <el-pagination v-model:current-page="filters.page" v-model:page-size="filters.page_size" layout="prev, pager, next, sizes" :total="total" />
-      </div>
+        <template #pagination>
+          <TablePagination v-model:current-page="filters.page" v-model:page-size="filters.page_size" :total="total" />
+        </template>
+      </TableSurface>
     </section>
   </section>
 </template>

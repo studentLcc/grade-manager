@@ -66,6 +66,9 @@ class RankingRead(BaseModel):
     rank_type: str
     exam_subject_id: int | None
     class_id: int | None
+    total: int
+    page: int
+    page_size: int
     items: list[RankingItem]
 
 
@@ -82,6 +85,9 @@ class SegmentRead(BaseModel):
     type: str
     exam_subject_id: int | None
     step: int
+    total: int
+    page: int
+    page_size: int
     items: list[SegmentItem]
 
 

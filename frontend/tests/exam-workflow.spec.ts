@@ -242,6 +242,57 @@ describe('exam wizard', () => {
     expect(wrapper.text()).not.toContain('district_mock')
   })
 
+  it('uses polished summary surfaces for exam detail information and score status', async () => {
+    routerMocks.route.params.id = '7'
+    vi.spyOn(http, 'get').mockImplementation((url: string) => {
+      if (url === '/exams/7') {
+        return Promise.resolve({
+          data: {
+            id: 7,
+            name: '期中考试',
+            exam_type: 'school',
+            term: '2026-2027-1',
+            status: 'active',
+            remark: '演示考试',
+            classes: [{ id: 1, name: '一班' }],
+            subjects: [{ id: 11, course_id: 3, course_name: '数学', full_score: '100', pass_score: '60', excellent_score: '90', exam_date: null, status: 'active', remark: null }],
+          },
+        })
+      }
+      if (url === '/exams/7/score-sheet') {
+        return Promise.resolve({
+          data: {
+            exam: { id: 7, name: '期中考试', exam_type: 'school', term: '2026-2027-1' },
+            classes: [{ id: 1, name: '一班' }],
+            subjects: [{ exam_subject_id: 11, course_id: 3, course_name: '数学', full_score: '100', pass_score: '60', excellent_score: '90', status: 'active' }],
+            students: [{ exam_student_id: 21, student_id: 1, class_id: 1, student_no: 'S001', name: '张三', status: 'active' }],
+            scores: [{ exam_student_id: 21, exam_subject_id: 11, score: '88', score_status: 'normal', remark: null }],
+          },
+        })
+      }
+      return Promise.resolve({ data: {} })
+    })
+
+    const wrapper = mount(ExamDetailView, {
+      global: {
+        stubs: {
+          'el-button': buttonStub,
+          'el-table': tableStub,
+          'el-table-column': tableColumnStub,
+        },
+        directives: { loading: {} },
+      },
+    })
+    await flushPromises()
+
+    expect(wrapper.find('.gm-exam-info-card').exists()).toBe(true)
+    expect(wrapper.find('.gm-exam-summary-grid').exists()).toBe(true)
+    expect(wrapper.find('.gm-exam-classes-card').exists()).toBe(true)
+    expect(wrapper.find('.gm-exam-subjects-card').exists()).toBe(true)
+    expect(wrapper.find('.gm-exam-score-card').exists()).toBe(true)
+    expect(wrapper.findAll('.gm-exam-summary-item').length).toBeGreaterThanOrEqual(7)
+  })
+
   it('reloads exam detail when route id changes', async () => {
     routerMocks.route.params.id = '7'
     const get = vi.spyOn(http, 'get').mockImplementation((url: string) => {

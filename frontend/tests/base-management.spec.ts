@@ -12,9 +12,13 @@ const mocks = vi.hoisted(() => ({
 }))
 
 const tableSlotStub = { template: '<div><slot /></div>' }
+const tabPaneStub = {
+  props: ['label'],
+  template: '<section><span class="tab-label-stub">{{ label }}</span><slot /></section>',
+}
 const uploadStub = {
-  props: ['disabled'],
-  template: '<div class="upload-stub" :data-disabled="String(Boolean(disabled))"><slot /></div>',
+  props: { disabled: Boolean, drag: Boolean },
+  template: '<div class="upload-stub" :data-disabled="String(Boolean(disabled))" :data-drag="String(Boolean(drag))"><slot /></div>',
 }
 const tableColumnStub = {
   props: ['label'],
@@ -33,6 +37,7 @@ const dataTableStub = {
 }
 const inputStub = { template: '<input />' }
 const buttonStub = { template: '<button><slot /></button>' }
+const checkboxStub = { template: '<label><slot /></label>' }
 const paginationStub = { template: '<nav />' }
 const selectStub = {
   props: { clearable: Boolean },
@@ -48,9 +53,11 @@ const routerLinkStub = {
 }
 const elementStubs = {
   'el-button': buttonStub,
+  'el-checkbox': checkboxStub,
   'el-dialog': tableSlotStub,
   'el-form': tableSlotStub,
   'el-form-item': tableSlotStub,
+  'el-icon': tableSlotStub,
   'el-input': inputStub,
   'el-input-number': inputStub,
   'el-option': optionStub,
@@ -59,7 +66,7 @@ const elementStubs = {
   'el-table': tableSlotStub,
   'el-table-column': tableColumnStub,
   'el-tabs': tableSlotStub,
-  'el-tab-pane': tableSlotStub,
+  'el-tab-pane': tabPaneStub,
   'el-time-select': inputStub,
   'el-upload': tableSlotStub,
   RouterLink: routerLinkStub,
@@ -120,6 +127,9 @@ describe('base management views', () => {
     })
 
     expect(wrapper.text()).toContain('学生列表')
+    expect(wrapper.text()).toContain('下载模板')
+    expect(wrapper.text()).toContain('更新已有学生')
+    expect(wrapper.text()).toContain('拖拽学生名单文件到这里')
     expect(wrapper.text()).toContain('导入学生')
     expect(wrapper.text()).toContain('新增学生')
     expect(wrapper.text()).toContain('学号')
@@ -138,6 +148,7 @@ describe('base management views', () => {
     }
 
     expect(wrapper.find('.upload-stub').attributes('data-disabled')).toBe('false')
+    expect(wrapper.find('.upload-stub').attributes('data-drag')).toBe('true')
     expect(wrapper.find('button.gm-action-button').attributes('disabled')).toBeUndefined()
 
     await view.uploadStudents({ file: new File(['student_no,name\nS001,张三'], 'students.xlsx') })
@@ -383,6 +394,47 @@ describe('base management views', () => {
     post.mockRestore()
   })
 
+  it('passes the update-existing option when uploading student imports', async () => {
+    const post = vi.spyOn(http, 'post').mockResolvedValue({
+      data: { batch_id: 1, status: 'success', success_count: 1, failed_count: 0 },
+    })
+    const wrapper = mount(ClassesStudentsView, {
+      global: testGlobal(),
+    })
+    const view = wrapper.vm as unknown as {
+      studentFilters: { class_id: number | undefined }
+      studentImportUpdateExisting: boolean
+      uploadStudents: (options: { file: File }) => Promise<void>
+    }
+    view.studentFilters.class_id = 3
+    view.studentImportUpdateExisting = true
+
+    await view.uploadStudents({ file: new File(['student_no,name\nS001,张三'], 'students.xlsx') })
+
+    expect(post).toHaveBeenCalledWith(
+      '/students/import',
+      expect.any(FormData),
+      expect.objectContaining({
+        params: { target_class_id: 3, update_existing: true },
+      }),
+    )
+  })
+
+  it('downloads student import templates through configured http client', async () => {
+    const { http } = await import('../src/api/http')
+    const get = vi.spyOn(http, 'get').mockResolvedValue({
+      data: new Blob(['template']),
+    })
+    const { downloadStudentTemplate } = await import('../src/api/students')
+
+    await downloadStudentTemplate()
+
+    expect(get).toHaveBeenCalledWith('/students/import-template', {
+      responseType: 'blob',
+    })
+    get.mockRestore()
+  })
+
   it('keeps table list requests bounded to the current backend page', async () => {
     const get = vi.mocked(http.get)
     get.mockImplementation((url: string, config?: { params?: Record<string, unknown> }) => {
@@ -469,6 +521,73 @@ describe('base management views', () => {
 
     view.studentFilters.class_id = 1
     await expect(view.uploadStudents({ file })).resolves.toBeUndefined()
+  })
+
+  it('keeps successful create forms populated while dialogs are closing', async () => {
+    vi.spyOn(http, 'post').mockResolvedValue({ data: { id: 1 } })
+    const classesWrapper = mount(ClassesStudentsView, {
+      global: testGlobal(),
+    })
+    const classesView = classesWrapper.vm as unknown as {
+      classDialogVisible: boolean
+      classForm: { name: string }
+      classFormRef: { validate: () => Promise<boolean> }
+      openCreateClassDialog: () => void
+      saveClass: () => Promise<void>
+      studentDialogVisible: boolean
+      studentForm: { student_no: string; name: string; class_id: number | null }
+      studentFormRef: { validate: () => Promise<boolean> }
+      openCreateStudentDialog: () => void
+      saveStudent: () => Promise<void>
+    }
+
+    classesView.classFormRef = { validate: () => Promise.resolve(true) }
+    classesView.openCreateClassDialog()
+    classesView.classForm.name = '二年级一班'
+    await classesView.saveClass()
+
+    expect(classesView.classDialogVisible).toBe(false)
+    expect(classesView.classForm.name).toBe('二年级一班')
+
+    classesView.studentFormRef = { validate: () => Promise.resolve(true) }
+    classesView.openCreateStudentDialog()
+    Object.assign(classesView.studentForm, { student_no: 'S002', name: '李四', class_id: 1 })
+    await classesView.saveStudent()
+
+    expect(classesView.studentDialogVisible).toBe(false)
+    expect(classesView.studentForm).toMatchObject({ student_no: 'S002', name: '李四', class_id: 1 })
+
+    const coursesWrapper = mount(CoursesScheduleView, {
+      global: testGlobal(),
+    })
+    const coursesView = coursesWrapper.vm as unknown as {
+      courseDialogVisible: boolean
+      courseForm: { course_name: string }
+      courseFormRef: { validate: () => Promise<boolean> }
+      openCreateCourseDialog: () => void
+      saveCourse: () => Promise<void>
+      scheduleDialogVisible: boolean
+      scheduleForm: { class_id: number | undefined; course_id: number | undefined; weekday: number | undefined; period_no: number }
+      scheduleFormRef: { validate: () => Promise<boolean> }
+      openCreateScheduleDialog: () => void
+      saveSchedule: () => Promise<void>
+    }
+
+    coursesView.courseFormRef = { validate: () => Promise.resolve(true) }
+    coursesView.openCreateCourseDialog()
+    coursesView.courseForm.course_name = '化学'
+    await coursesView.saveCourse()
+
+    expect(coursesView.courseDialogVisible).toBe(false)
+    expect(coursesView.courseForm.course_name).toBe('化学')
+
+    coursesView.scheduleFormRef = { validate: () => Promise.resolve(true) }
+    coursesView.openCreateScheduleDialog()
+    Object.assign(coursesView.scheduleForm, { class_id: 1, course_id: 1, weekday: 1, period_no: 1 })
+    await coursesView.saveSchedule()
+
+    expect(coursesView.scheduleDialogVisible).toBe(false)
+    expect(coursesView.scheduleForm).toMatchObject({ class_id: 1, course_id: 1, weekday: 1, period_no: 1 })
   })
 
   it('sends status in update payloads for course and schedule edits', async () => {

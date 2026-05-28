@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getExam, type ExamRecord } from '../api/exams'
 import { getScoreSheet, type ScoreSheet } from '../api/scores'
+import TableSurface from '../components/common/TableSurface.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -80,41 +81,64 @@ watch(examId, loadExam, { immediate: true })
       </div>
     </div>
 
-    <section class="gm-page-card">
+    <section class="gm-page-card gm-exam-info-card">
       <h2>基本信息</h2>
-      <div class="gm-detail-grid">
-        <div><span>考试类型</span><strong>{{ examTypeLabel(exam?.exam_type) }}</strong></div>
-        <div><span>状态</span><strong>{{ statusLabel(exam?.status) }}</strong></div>
-        <div><span>备注</span><strong>{{ exam?.remark || '-' }}</strong></div>
+      <div class="gm-exam-summary-grid">
+        <div class="gm-exam-summary-item">
+          <span>考试类型</span>
+          <strong>{{ examTypeLabel(exam?.exam_type) }}</strong>
+        </div>
+        <div class="gm-exam-summary-item">
+          <span>状态</span>
+          <strong>{{ statusLabel(exam?.status) }}</strong>
+        </div>
+        <div class="gm-exam-summary-item">
+          <span>备注</span>
+          <strong>{{ exam?.remark || '-' }}</strong>
+        </div>
       </div>
     </section>
 
-    <section class="gm-page-card">
+    <section class="gm-page-card gm-exam-classes-card">
       <h2>参与班级</h2>
       <div class="gm-chip-row">
         <span v-for="classRecord in exam?.classes || []" :key="classRecord.id" class="gm-chip">{{ classRecord.name }}</span>
       </div>
     </section>
 
-    <section class="gm-page-card">
+    <section class="gm-page-card gm-exam-subjects-card">
       <h2>考试科目</h2>
-      <el-table border class="gm-data-table" :data="exam?.subjects || []" empty-text="暂无科目">
-        <el-table-column prop="course_name" label="科目" />
-        <el-table-column prop="full_score" label="满分" width="100" />
-        <el-table-column prop="pass_score" label="及格分" width="100" />
-        <el-table-column prop="excellent_score" label="优秀分" width="100" />
-        <el-table-column prop="exam_date" label="考试日期" width="140" />
-        <el-table-column prop="remark" label="备注" />
-      </el-table>
+      <TableSurface compact>
+        <el-table border class="gm-data-table" :data="exam?.subjects || []" empty-text="暂无科目">
+          <el-table-column prop="course_name" label="科目" />
+          <el-table-column prop="full_score" label="满分" width="100" />
+          <el-table-column prop="pass_score" label="及格分" width="100" />
+          <el-table-column prop="excellent_score" label="优秀分" width="100" />
+          <el-table-column prop="exam_date" label="考试日期" width="140" />
+          <el-table-column prop="remark" label="备注" />
+        </el-table>
+      </TableSurface>
     </section>
 
-    <section class="gm-page-card">
+    <section class="gm-page-card gm-exam-score-card">
       <h2>成绩录入状态</h2>
-      <div class="gm-detail-grid">
-        <div><span>应录入</span><strong>{{ scoreSummary.total }}</strong></div>
-        <div><span>已录入</span><strong>{{ scoreSummary.entered }}</strong></div>
-        <div><span>未录入</span><strong>{{ scoreSummary.missing }}</strong></div>
-        <div><span>异常状态</span><strong>{{ scoreSummary.abnormal }}</strong></div>
+      <div class="gm-exam-summary-grid">
+        <div class="gm-exam-summary-item">
+          <span>应录入</span>
+          <strong>{{ scoreSummary.total }}</strong>
+        </div>
+        <div class="gm-exam-summary-item">
+          <span>已录入</span>
+          <strong>{{ scoreSummary.entered }}</strong>
+        </div>
+        <div class="gm-exam-summary-item">
+          <span>未录入</span>
+          <strong>{{ scoreSummary.missing }}</strong>
+        </div>
+        <div class="gm-exam-summary-item">
+          <span>异常状态</span>
+          <strong>{{ scoreSummary.abnormal }}</strong>
+        </div>
       </div>
     </section>
   </section>

@@ -21,6 +21,13 @@ vi.mock('vue-router', async (importOriginal) => {
   }
 })
 
+const checkboxStub = { template: '<label><slot /></label>' }
+const iconStub = { template: '<span><slot /></span>' }
+const uploadStub = {
+  props: { disabled: Boolean, drag: Boolean },
+  template: '<div class="upload-stub" :data-disabled="String(Boolean(disabled))" :data-drag="String(Boolean(drag))"><slot /></div>',
+}
+
 enableAutoUnmount(afterEach)
 
 beforeEach(() => {
@@ -279,7 +286,9 @@ describe('score entry table', () => {
       global: {
         stubs: {
           'el-button': { template: '<button><slot /></button>' },
+          'el-checkbox': checkboxStub,
           'el-dialog': { template: '<div><slot /></div>' },
+          'el-icon': iconStub,
           'el-table': { props: ['data'], template: '<div><div v-for="row in data" :key="row.id">{{ Object.values(row).join(" ") }}</div></div>' },
           'el-table-column': { template: '<div />' },
           'el-upload': { template: '<div><slot /></div>' },
@@ -297,6 +306,46 @@ describe('score entry table', () => {
     expect(wrapper.text()).toContain('分数不能超过满分')
   })
 
+  it('passes the overwrite option when uploading score imports', async () => {
+    const post = vi.spyOn(http, 'post').mockResolvedValue({
+      data: { batch_id: 8, status: 'success', success_count: 1, failed_count: 0, error_summary: '' },
+    })
+    vi.spyOn(http, 'get').mockResolvedValue({ data: { items: [], total: 0, page: 1, page_size: 20 } })
+    const wrapper = mount(ScoreImportDialog, {
+      props: { modelValue: true, examId: 7, className: '一班' },
+      global: {
+        stubs: {
+          'el-button': { template: '<button><slot /></button>' },
+          'el-checkbox': checkboxStub,
+          'el-dialog': { template: '<div><slot /></div>' },
+          'el-icon': iconStub,
+          'el-table': { props: ['data'], template: '<div><div v-for="row in data" :key="row.id">{{ Object.values(row).join(" ") }}</div></div>' },
+          'el-table-column': { template: '<div />' },
+          'el-upload': uploadStub,
+          RouterLink: { template: '<a><slot /></a>' },
+        },
+      },
+    })
+    const view = wrapper.vm as unknown as {
+      overwriteExisting: boolean
+      uploadScoreFile: (options: { file: File }) => Promise<void>
+    }
+    view.overwriteExisting = true
+
+    await view.uploadScoreFile({ file: new File(['score'], 'scores.xlsx') })
+
+    expect(wrapper.text()).toContain('覆盖已有成绩')
+    expect(wrapper.text()).toContain('导入范围')
+    expect(wrapper.text()).toContain('一班')
+    expect(wrapper.text()).toContain('拖拽成绩文件到这里')
+    expect(wrapper.find('.upload-stub').attributes('data-drag')).toBe('true')
+    expect(post).toHaveBeenCalledWith(
+      '/exams/7/scores/import',
+      expect.any(FormData),
+      expect.objectContaining({ params: { overwrite_existing: true } }),
+    )
+  })
+
   it('emits imported even when row-level import errors fail to load', async () => {
     vi.spyOn(http, 'post').mockResolvedValue({
       data: { batch_id: 8, status: 'partial_success', success_count: 3, failed_count: 1, error_summary: '1 行失败' },
@@ -307,7 +356,9 @@ describe('score entry table', () => {
       global: {
         stubs: {
           'el-button': { template: '<button><slot /></button>' },
+          'el-checkbox': checkboxStub,
           'el-dialog': { template: '<div><slot /></div>' },
+          'el-icon': iconStub,
           'el-table': { props: ['data'], template: '<div><div v-for="row in data" :key="row.id">{{ Object.values(row).join(" ") }}</div></div>' },
           'el-table-column': { template: '<div />' },
           'el-upload': { template: '<div><slot /></div>' },
@@ -696,7 +747,9 @@ describe('score entry table', () => {
       global: {
         stubs: {
           'el-button': { props: ['loading'], template: '<button>{{ loading ? "上传中" : "" }}<slot /></button>' },
+          'el-checkbox': checkboxStub,
           'el-dialog': { template: '<div><slot /></div>' },
+          'el-icon': iconStub,
           'el-table': { props: ['data'], template: '<div><div v-for="row in data" :key="row.id">{{ Object.values(row).join(" ") }}</div></div>' },
           'el-table-column': { template: '<div />' },
           'el-upload': { template: '<div><slot /></div>' },
@@ -725,7 +778,9 @@ describe('score entry table', () => {
       global: {
         stubs: {
           'el-button': { props: ['loading'], template: '<button>{{ loading ? "上传中" : "" }}<slot /></button>' },
+          'el-checkbox': checkboxStub,
           'el-dialog': { template: '<div><slot /></div>' },
+          'el-icon': iconStub,
           'el-table': { props: ['data'], template: '<div><div v-for="row in data" :key="row.id">{{ Object.values(row).join(" ") }}</div></div>' },
           'el-table-column': { template: '<div />' },
           'el-upload': { template: '<div><slot /></div>' },

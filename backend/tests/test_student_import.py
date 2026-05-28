@@ -1,7 +1,7 @@
 from io import BytesIO
 from zipfile import ZipFile
 
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 
 from tests.test_classes_students_courses_schedules import auth_headers
 
@@ -24,6 +24,20 @@ def malformed_xlsx_zip_bytes():
         archive.writestr("dummy.txt", "not an Excel workbook")
     stream.seek(0)
     return stream
+
+
+def test_student_import_template_downloads_expected_workbook(client):
+    headers = auth_headers(client, "teacher1")
+
+    response = client.get("/api/v1/students/import-template", headers=headers)
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    assert response.headers["content-disposition"] == 'attachment; filename="student-import-template.xlsx"'
+    workbook = load_workbook(BytesIO(response.content))
+    sheet = workbook.active
+    assert sheet.title == "students"
+    assert [cell.value for cell in sheet[1]] == ["student_no", "name", "gender", "status", "remark"]
 
 
 def test_student_import_writes_valid_rows_and_records_errors(client):

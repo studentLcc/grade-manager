@@ -1,4 +1,34 @@
+from tests.test_exams_rosters import seed_base
 from tests.test_scores import create_exam_sheet
+
+
+def create_two_student_exam_sheet(client):
+    headers, class_id, course_id, _ = seed_base(client)
+    client.post(
+        "/api/v1/students",
+        headers=headers,
+        json={"class_id": class_id, "student_no": "S002", "name": "李四"},
+    )
+    exam = client.post(
+        "/api/v1/exams",
+        headers=headers,
+        json={
+            "name": "期中考试",
+            "exam_type": "school",
+            "term": "2026-2027-1",
+            "class_ids": [class_id],
+            "subjects": [
+                {
+                    "course_id": course_id,
+                    "full_score": "100",
+                    "pass_score": "60",
+                    "excellent_score": "90",
+                }
+            ],
+        },
+    ).json()
+    sheet = client.get(f"/api/v1/exams/{exam['id']}/score-sheet", headers=headers).json()
+    return headers, exam, sheet
 
 
 def test_exam_summary_defaults_to_normal_scores_only(client):
@@ -29,17 +59,10 @@ def test_exam_summary_defaults_to_normal_scores_only(client):
 
 
 def test_segments_and_rankings_use_backend_included_statuses(client):
-    headers, exam, sheet = create_exam_sheet(client)
-    student = sheet["students"][0]
+    headers, exam, sheet = create_two_student_exam_sheet(client)
     subject = sheet["subjects"][0]
-    absent_student_id = client.post(
-        "/api/v1/students",
-        headers=headers,
-        json={"class_id": student["class_id"], "student_no": "S002", "name": "李四"},
-    ).json()["id"]
-    sheet = client.get(f"/api/v1/exams/{exam['id']}/score-sheet", headers=headers).json()
-    normal_student = [row for row in sheet["students"] if row["student_id"] == student["student_id"]][0]
-    absent_student = [row for row in sheet["students"] if row["student_id"] == absent_student_id][0]
+    normal_student = [row for row in sheet["students"] if row["student_no"] == "S001"][0]
+    absent_student = [row for row in sheet["students"] if row["student_no"] == "S002"][0]
     client.put(
         f"/api/v1/exams/{exam['id']}/scores",
         headers=headers,
@@ -95,6 +118,80 @@ def test_segments_and_rankings_use_backend_included_statuses(client):
     assert ranking.status_code == 200
     assert ranking.json()["included_statuses"] == ["normal", "absent"]
     assert [item["score"] for item in ranking.json()["items"]] == ["80.00", "0.00"]
+
+
+def test_rankings_support_page_parameters(client):
+    headers, exam, sheet = create_two_student_exam_sheet(client)
+    subject = sheet["subjects"][0]
+    first_student = [row for row in sheet["students"] if row["student_no"] == "S001"][0]
+    second_student = [row for row in sheet["students"] if row["student_no"] == "S002"][0]
+    client.put(
+        f"/api/v1/exams/{exam['id']}/scores",
+        headers=headers,
+        json={
+            "items": [
+                {
+                    "exam_student_id": first_student["exam_student_id"],
+                    "exam_subject_id": subject["exam_subject_id"],
+                    "score": "90",
+                    "score_status": "normal",
+                },
+                {
+                    "exam_student_id": second_student["exam_student_id"],
+                    "exam_subject_id": subject["exam_subject_id"],
+                    "score": "80",
+                    "score_status": "normal",
+                },
+            ]
+        },
+    )
+
+    response = client.get(
+        f"/api/v1/statistics/exams/{exam['id']}/rankings?rank_type=subject"
+        f"&exam_subject_id={subject['exam_subject_id']}&page=2&page_size=1",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 2
+    assert body["page"] == 2
+    assert body["page_size"] == 1
+    assert body["items"][0]["rank"] == 2
+    assert body["items"][0]["name"] == "李四"
+
+
+def test_segments_support_page_parameters(client):
+    headers, exam, sheet = create_exam_sheet(client)
+    student = sheet["students"][0]
+    subject = sheet["subjects"][0]
+    client.put(
+        f"/api/v1/exams/{exam['id']}/scores",
+        headers=headers,
+        json={
+            "items": [
+                {
+                    "exam_student_id": student["exam_student_id"],
+                    "exam_subject_id": subject["exam_subject_id"],
+                    "score": "88",
+                    "score_status": "normal",
+                }
+            ]
+        },
+    )
+
+    response = client.get(
+        f"/api/v1/statistics/exams/{exam['id']}/segments?type=total&step=10&page=2&page_size=3",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] >= 9
+    assert body["page"] == 2
+    assert body["page_size"] == 3
+    assert len(body["items"]) == 3
+    assert body["items"][0]["label"] == "[30, 40)"
 
 
 def test_segments_can_be_filtered_by_snapshot_class(client):
@@ -212,15 +309,8 @@ def test_segments_returns_zero_bucket_when_only_missing_scores_are_included(clie
 
 
 def test_summary_excludes_missing_until_explicitly_included(client):
-    headers, exam, sheet = create_exam_sheet(client)
-    student = sheet["students"][0]
+    headers, exam, sheet = create_two_student_exam_sheet(client)
     subject = sheet["subjects"][0]
-    client.post(
-        "/api/v1/students",
-        headers=headers,
-        json={"class_id": student["class_id"], "student_no": "S002", "name": "李四"},
-    )
-    sheet = client.get(f"/api/v1/exams/{exam['id']}/score-sheet", headers=headers).json()
     scored = [row for row in sheet["students"] if row["student_no"] == "S001"][0]
     client.put(
         f"/api/v1/exams/{exam['id']}/scores",

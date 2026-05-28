@@ -166,7 +166,7 @@ function selectAcademicYear(academicYear: string) {
 </script>
 
 <template>
-  <section class="gm-page-card gm-trend-card gm-dashboard-analysis-card">
+  <section class="gm-page-card gm-trend-card gm-dashboard-analysis-card" :class="{ 'is-empty': !points.length }">
     <div class="gm-section-title">
       <h2>班级均分趋势</h2>
       <el-select

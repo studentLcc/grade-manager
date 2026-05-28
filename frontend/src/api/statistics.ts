@@ -70,6 +70,9 @@ export interface RankingResponse {
   rank_type: string
   exam_subject_id: number | null
   class_id: number | null
+  total: number
+  page: number
+  page_size: number
   items: RankingRecord[]
 }
 
@@ -86,6 +89,9 @@ export interface SegmentResponse {
   type: string
   exam_subject_id: number | null
   step: number
+  total: number
+  page: number
+  page_size: number
   items: SegmentRecord[]
 }
 
